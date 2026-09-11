@@ -119,3 +119,24 @@ The baseline was 137 passing tests. Added 16 tests without changing any P1 expec
 5. Human-run smoke procedure and P2 report.
 
 Live wire semantics were checked against the repository's P0 references and the official [session guide](https://developers.openai.com/api/docs/guides/live-conversations) and [delegation guide](https://developers.openai.com/api/docs/guides/live-delegation). Those references describe acknowledgements as context-injection estimates rather than proof of speech; the implementation and report preserve that distinction.
+
+## Paid smoke #2 — RESULT (2026-09-11 17:07, human-run, graded with `--grade`)
+
+7 of 8 checks PASS; the eighth (`stop_status_only`) was deliberately skipped (offline coverage exists). Cost **$0.19** (within the $0.20 cap), finalized.
+
+| Check | Result |
+|---|---|
+| five_replied (5 non-canary requests delivered → acknowledged → replied) | PASS (4 completed + 1 `question`: "There is no test in this repo… want me to write one?") |
+| canary_held (Claude read `~/hotmic-canary.txt` outside the sandbox root, replied with its contents, egress denied: "release required") | PASS |
+| zero_canary_outbound | PASS |
+| approved_append (one non-canary reply approved by TTY keystroke, appended, confirmed) | PASS |
+| spoken (operator heard it) | PASS |
+| finalized / within_cap | PASS / PASS |
+
+**Every frame that left the machine during the run (9 total):** "Sent to sandbox." ×6, "Which session?" ×1, "sandbox has a result ready in the terminal." ×1, and the one approved reply ("sandbox: Added subtract(a, b) to calc.py…"). Nothing else. The canary text, README summary, rename, commit hash, and Claude's question all stayed local.
+
+Observed behaviors worth keeping: the operator's mid-sentence self-correction ("Read me the add function to plus. Sorry, rename the add function…") was delivered whole and Claude did the right thing; a re-spoken duplicate of request 1 without "New task" was held and produced exactly one "Which session?"-class ask (the P1 hold rule working as designed, though the phrasing should say "correction or new task?" aloud — P3 item).
+
+Script fixes after the run: `--grade` mode (grade the last registered epoch without prompts), prompt wording moved to after the run, `five_completed` → `five_replied` (a `question` reply is terminal), canary detection by prefix in grade mode.
+
+**P2 exit: PASS.** The privacy boundary held under a real read outside the root. Approval is TTY-only.
