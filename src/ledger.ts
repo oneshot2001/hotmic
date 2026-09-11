@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { costUSD } from "./p0-audio";
+export const MIN_ACTIVATION_USD = 11 / 60 * 0.05;
 
 export type Usage = { voice_epoch: string; seconds: number; usd: number; finalized: number;
   day: string; last_activity_at: number; close_requested: number };

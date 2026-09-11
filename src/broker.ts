@@ -2,15 +2,26 @@ import type { Database } from "bun:sqlite";
 import { currentRequest, RequestMachine, type Action, type RequestEvent } from "./requests";
 import { emptyTranscripts, transcriptStep, type TranscriptEvent } from "./transcripts";
 import { Ledger, type Caps } from "./ledger";
-import { type Candidate, type Context, type Policy, payloadHash, releasePayload, sessionPolicy, statusText, validAlias } from "./egress";
+import { type Candidate, type Context, type Policy, payloadHash, releasePayload, sessionPolicy, statusText, noticeText, type Notice } from "./egress";
 import type { LivePort } from "./live";
 import { object, validTool } from "../shim/protocol";
 import { hookMetadata } from "../shim/hook";
-export type Session = { alias: string; cwd: string; token: string; send?: (value: unknown) => void };
+import { Registry, emptyRefs, type Refs } from "./registry";
+import { resolve, leading, clarification, focusedAlias, unavailable, type Pin, type Resolution } from "./netcontrol";
+import { identify } from "./cmux";
+import { SpeechQueue, type SpeechKind } from "./speech";
 export type BrokerOptions = { db: Database; policy: () => Policy | null; secrets: readonly string[]; secretsReady?: boolean; live: LivePort;
-  now?: () => number; log?: (event: Record<string, unknown>) => void; caps?: Caps };
+  now?: () => number; log?: (event: Record<string, unknown>) => void; caps?: Caps; focus?: () => Promise<Refs> };
 export class Broker {
-  readonly sessions = new Map<string, Session>();
+  readonly sessions: Registry;
+  readonly speech: SpeechQueue;
+  pinned: Pin | null = null;
+  focused: Refs = emptyRefs();
+  #focusTimer?: ReturnType<typeof setInterval>;
+  #fragmentFocus = new Map<number, { focused: Refs; spokenAt: number; pinned: Pin | null }>();
+  #routeReminders = new Map<string, { request_id: string; revision: number }>();
+  #route: Resolution = { ask: "Which session?" };
+  #captured?: { focused: Refs; spokenAt: number; pinned: Pin | null };
   readonly requests: RequestMachine;
   readonly ledger: Ledger;
   readonly live: LivePort;
@@ -27,41 +38,113 @@ export class Broker {
   constructor(private options: BrokerOptions) {
     this.#now = options.now ?? Date.now;
     this.live = options.live;
-    this.requests = new RequestMachine(options.db, () => this.sessions.keys().next().value ?? "AMBIGUOUS", this.#now());
+    this.sessions = new Registry(options.db);
+    this.speech = new SpeechQueue(this.#now);
+    this.requests = new RequestMachine(options.db, () => "alias" in this.#route ? this.#route : "AMBIGUOUS", this.#now(),
+      alias => !!this.sessions.get(alias)?.send && !!this.sessions.get(alias)?.connected && !!this.sessions.get(alias)?.ready);
     this.ledger = new Ledger(options.db, options.caps ?? { activation_usd: 0.50, daily_usd: 3, idle_ms: 180_000 });
-    options.db.exec("CREATE TABLE IF NOT EXISTS sessions (alias TEXT PRIMARY KEY, cwd TEXT NOT NULL, token_hash TEXT NOT NULL)");
     this.actions(this.requests.recoveryActions);
   }
   log(event: Record<string, unknown>) { this.options.log?.({ at: this.#now(), ...event }); }
-  start() { this.#timer = setInterval(() => this.tick(), 250); }
-  async stop() { clearInterval(this.#timer); await this.live.close("broker shutdown"); }
-  register(alias: string, cwd: string, token: string) {
-    if (!validAlias(alias) || !/^[a-f0-9]{64}$/.test(token) || !sessionPolicy(this.options.policy(), alias, cwd)) throw new Error("Session refused by policy");
-    if (this.sessions.size && (!this.sessions.has(alias) || this.sessions.get(alias)?.send)) throw new Error("P2 supports one session");
-    this.sessions.set(alias, { alias, cwd, token });
-    this.options.db.query("INSERT OR REPLACE INTO sessions VALUES (?, ?, ?)").run(alias, cwd, payloadHash(token));
+  start() {
+    this.#timer = setInterval(() => this.tick(), 250);
+    void this.sampleFocus(); this.#focusTimer = setInterval(() => void this.sampleFocus(), 2000);
+  }
+  async sampleFocus() { this.focused = await (this.options.focus ?? identifyFocus)(); }
+  async stop() { clearInterval(this.#timer); clearInterval(this.#focusTimer); await this.live.close("broker shutdown"); }
+  register(alias: string, cwd: string, token: string, refs: Refs = emptyRefs()) {
+    const policy = sessionPolicy(this.options.policy(), alias, cwd);
+    if (!policy) throw new Error("Session refused by policy");
+    this.sessions.register(alias, cwd, token, policy.level, refs);
     this.log({ type: "registered", alias });
   }
-  authenticate(alias: string, token: string) { return validAlias(alias) && this.sessions.get(alias)?.token === token; }
+  authenticate(alias: string, token: string) { return this.sessions.authenticate(alias, token); }
   connect(alias: string, token: string, send: (value: unknown) => void) {
     if (!this.authenticate(alias, token)) throw new Error("Unauthorized session");
     const s = this.sessions.get(alias)!;
-    if (s.send) throw new Error("Session already connected");
-    s.send = send;
-    return () => { if (s.send === send) s.send = undefined; };
+    if (s.send && s.connected) throw new Error("Session already connected");
+    s.send = send; s.ready = false;
+    this.sessions.heartbeat(alias, this.#now());
+    return () => {
+      if (this.sessions.get(alias) !== s || s.send !== send) return;
+      s.send = undefined; s.ready = false;
+      if (this.sessions.disconnect(alias)) this.notResponding(alias);
+    };
+  }
+  heartbeat(alias: string, token: string) {
+    if (!this.authenticate(alias, token) || !this.sessions.get(alias)?.send) throw new Error("Unauthorized heartbeat");
+    this.sessions.heartbeat(alias, this.#now());
+    if (this.sessions.get(alias)?.ready) this.ready(alias);
+  }
+  notResponding(alias: string) {
+    this.log({ type: "disconnected", alias });
+    void this.emitNotice({ type: "offline", alias });
+  }
+  routingRegistry() {
+    const policy = this.options.policy();
+    return [...this.sessions.values()].map(s => {
+      const p = sessionPolicy(policy, s.alias, s.cwd);
+      return { ...s, level: p?.level ?? "off" as const, aliases: p?.aliases };
+    });
+  }
+  routeTranscript(event: Extract<RequestEvent, { type: "transcript" }>) {
+    const store = this.requests.snapshot();
+    const delegation = store.delegations.find(d => d.id === event.delegation_id);
+    const own = delegation?.request_id && currentRequest(store, delegation.request_id);
+    if (!own || own.state !== "WAITING_TRANSCRIPT" || !event.text.trim()) return false;
+    const captured = this.#captured ?? { focused: this.focused, spokenAt: this.#now(), pinned: this.pinned };
+    const registry = this.routingRegistry();
+    const result = resolve({ text: event.text, spokenAt: captured.spokenAt }, { registry, pinned: captured.pinned, focused: captured.focused });
+    this.#route = result;
+    const consume = () => this.handle({ type: "cancel", request_id: own.id, revision: own.revision });
+    if ("alias" in result && result.pinned) {
+      this.pinned = result.pinned; consume();
+      this.log({ type: "net control", operation: "pin", alias: result.alias });
+      void this.emitNotice({ type: "pin", alias: result.alias }); return true;
+    }
+    const waiting = store.requests.filter(r => r.state === "WAITING_ROUTE" && currentRequest(store, r.id)?.revision === r.revision).sort((a, b) => a.created_at - b.created_at)[0];
+    if (waiting) {
+      if (/^cancel[.!?]?$/i.test(event.text.trim())) {
+        consume(); this.handle({ type: "cancel", request_id: waiting.id, revision: waiting.revision }); return true;
+      }
+      const intent = clarification(event.text);
+      const named = leading(event.text, registry, true);
+      const pointing = /^(?:that one|the focused one)[.!?]?$/i.test(event.text.trim());
+      const alias = waiting.session_alias ? (intent ? waiting.session_alias : null)
+        : named && named !== "AMBIGUOUS" && named.text === "" && named.row.level !== "off" ? named.row.alias : pointing ? focusedAlias(registry, captured.focused) : null;
+      const old = store.delegations.find(d => d.request_id === waiting.id && d.revision === waiting.revision);
+      if (alias && old && registry.some(s => s.alias === alias && s.level !== "off")) {
+        consume();
+        this.log({ type: "net control", operation: "resolve", request_id: waiting.id, alias });
+        this.handle({ type: "resolve_route", delegation_id: old.id, alias, intent: waiting.session_alias ? intent! : "route" });
+        if (this.sessions.get(alias)?.ready) this.ready(alias); return true;
+      }
+      if (!waiting.session_alias) this.#routeReminders.set(own.id, { request_id: waiting.id, revision: waiting.revision });
+    }
+    if ("alias" in result) {
+      if (captured.pinned) this.pinned = captured.spokenAt - captured.pinned.lastRequestAt < 300000 ? { ...captured.pinned, lastRequestAt: captured.spokenAt } : null;
+      if (!result.text) { consume(); return true; }
+      this.log({ type: "net control", operation: "route", request_id: own.id, alias: result.alias, spokenAt: captured.spokenAt });
+    } else this.log({ type: "net control", operation: "ask", request_id: own.id });
+    return false;
   }
   ready(alias: string) {
+    const session = this.sessions.get(alias);
+    if (!session?.send || !session.connected) return;
+    session.ready = true;
     for (const r of this.requests.snapshot().requests) if (r.session_alias === alias && r.state === "READY") this.handle({ type: "dispatch", request_id: r.id, revision: r.revision });
   }
   handle(event: RequestEvent) {
+    if (event.type === "transcript" && this.routeTranscript(event)) return;
     const previous = this.requests.snapshot();
     const actions = this.requests.handle(event, this.#now());
     const next = this.requests.snapshot();
     for (const old of previous.requests) {
       const current = currentRequest(next, old.id);
       if (current?.revision !== old.revision || ["SUPERSEDED", "CANCELLED", "FAILED"].includes(current.state)) {
+        this.#routeReminders.delete(old.id);
         this.live.egress.revoke(old.id, old.revision);
-        if (old.state === "RESULT_AVAILABLE") void this.live.close("exported revision retired");
+        if (["RESULT_AVAILABLE", "SPOKEN"].includes(old.state)) void this.live.close("exported revision retired");
       }
     }
     this.actions(actions);
@@ -70,24 +153,37 @@ export class Broker {
     for (const action of actions) {
       if (action.type === "deliver") {
         const s = this.sessions.get(action.session_alias);
-        const policy = s?.send && sessionPolicy(this.options.policy(), s.alias, s.cwd);
+        const policy = s?.send && s.connected && sessionPolicy(this.options.policy(), s.alias, s.cwd);
         if (!s?.send || !policy || policy.level === "off") {
           this.log({ type: "ask", request_id: action.request_id, text: "That session is not available by voice." });
           continue;
         }
-        this.#owners.set(action.delivery_id, s.token);
+        this.#owners.set(action.delivery_id, s.token_hash);
         try {
           s.send({ content: action.supersedes ? `Correction replacing ${action.supersedes}: ${action.text}` : action.text,
             meta: { request_id: action.request_id, revision: String(action.revision), delivery_id: action.delivery_id, session_alias: s.alias } });
           this.handle({ type: "delivered", delivery_id: action.delivery_id });
           this.log({ ...action, type: "delivered", text: undefined });
           void this.emitStatus(action.request_id, action.revision, 0);
+          const reminder = this.#routeReminders.get(action.request_id);
+          this.#routeReminders.delete(action.request_id);
+          if (reminder) {
+            const pending = currentRequest(this.requests.snapshot(), reminder.request_id);
+            if (pending?.state === "WAITING_ROUTE" && pending.revision === reminder.revision)
+              this.actions([{ type: "ask", ...reminder, text: "Which session?" }]);
+          }
         } catch { this.log({ type: "delivery_unconfirmed", request_id: action.request_id }); }
       } else if (action.type === "append_status") {
-        void this.emitStatus(action.request_id, action.revision, action.status === "stopped" ? 3 : 1);
+        void this.emitStatus(action.request_id, action.revision, action.status === "stopped" ? 3 : 1,
+          action.status === "still_working" ? "progress" : "status");
       } else if (action.type === "ask") {
-        this.log(action);
-        void this.emitStatus(action.request_id, action.revision, 4);
+        const r = currentRequest(this.requests.snapshot(), action.request_id);
+        const notice: Notice = r?.state === "WAITING_ROUTE" && r.session_alias
+          ? { type: "clarify", alias: r.session_alias }
+          : "ask" in this.#route && this.#route.ask === unavailable ? { type: "unavailable" }
+          : { type: "route", aliases: this.routingRegistry().filter(s => s.connected && s.level !== "off").map(s => s.alias) };
+        this.log({ ...action, text: noticeText(notice) });
+        void this.emitNotice(notice, action.request_id, action.revision);
       } else if (action.type !== "append_result") this.log(action);
     }
   }
@@ -98,13 +194,29 @@ export class Broker {
       policy: this.options.policy(), secrets: this.options.secrets, secretsReady: this.options.secretsReady, source,
       current: !!s && r?.revision === revision && !["SUPERSEDED", "FAILED", "CANCELLED"].includes(r.state) };
   }
-  async emitStatus(id: string, revision: number, index: number) {
-    if (!this.live.awake) return;
-    const context = () => this.context(id, revision, "status");
-    const ctx = context();
+  async emitNotice(notice: Notice, id = "net-control", revision = 1) {
+    const alias = "alias" in notice ? notice.alias : "";
     try {
-      const decision = await this.live.egress.emit("commentary", statusText(index, ctx.session_alias), ctx.session_alias, context, this.delegation(id, revision));
-      this.log({ type: "status", request_id: id, revision, index, allowed: decision.allowed });
+      await this.speech.enqueue(notice.type === "offline" ? "status" : "question", alias, async () => {
+        if (!this.live.awake) return;
+        const context = (): Context => ({ request_id: id, revision, session_alias: alias, cwd: this.sessions.get(alias)?.cwd ?? "",
+          policy: this.options.policy(), secrets: [], source: "notice", notice,
+          current: id === "net-control" || (currentRequest(this.requests.snapshot(), id)?.revision === revision && currentRequest(this.requests.snapshot(), id)?.state === "WAITING_ROUTE") });
+        const decision = await this.live.egress.emit("commentary", noticeText(notice), alias, context, this.delegation(id, revision));
+        this.log({ type: "notice", notice: notice.type, alias, request_id: id, allowed: decision.allowed });
+      });
+    } catch { this.log({ type: "append_unconfirmed", request_id: id, revision }); }
+  }
+  async emitStatus(id: string, revision: number, index: number, kind: SpeechKind = index === 2 ? "permission" : "status") {
+    if (!this.live.awake) return;
+    const alias = currentRequest(this.requests.snapshot(), id)?.session_alias ?? "";
+    try {
+      await this.speech.enqueue(kind, alias, async () => {
+        if (!this.live.awake) return;
+        const context = () => this.context(id, revision, "status");
+        const decision = await this.live.egress.emit("commentary", statusText(index, alias), alias, context, this.delegation(id, revision));
+        this.log({ type: "status", request_id: id, revision, index, allowed: decision.allowed });
+      });
     } catch { this.log({ type: "append_unconfirmed", request_id: id, revision }); }
   }
   delegation(id: string, revision: number) {
@@ -115,7 +227,7 @@ export class Broker {
     const d = this.requests.snapshot().deliveries.find(d => d.id === args.delivery_id);
     const r = d && currentRequest(this.requests.snapshot(), d.request_id);
     if (!d || !r || r.session_alias !== alias || d.request_id !== args.request_id || d.revision !== Number(args.revision) ||
-      r.revision !== d.revision || this.#owners.get(d.id) !== token) throw new Error("Delivery ownership mismatch");
+      r.revision !== d.revision || this.#owners.get(d.id) !== payloadHash(token)) throw new Error("Delivery ownership mismatch");
     if (name === "acknowledge") this.handle({ type: "acknowledge", delivery_id: d.id });
     else this.handle({ type: "reply", delivery_id: d.id, status: args.status as "completed" | "failed" | "question", text: args.text as string });
     this.log({ type: name === "reply" ? "replied" : "acknowledged", request_id: r.id, revision: r.revision });
@@ -168,30 +280,35 @@ export class Broker {
         const ctx = this.context(id, revision, "reply");
         return { ...ctx, current: ctx.current && !this.#rejected.has(key) };
       };
-      if (!this.live.awake) { this.handle({ type: "export_blocked", request_id: id, revision }); return; }
-      const decision = await this.live.egress.emit("commentary", result.text, r.session_alias, context,
-        this.delegation(id, revision), () => this.handle({ type: "export_result", request_id: id, revision }));
-      this.log({ type: "egress", request_id: id, revision, allowed: decision.allowed, reason: decision.reason });
-      if (decision.allowed) {
-        this.handle({ type: "export_result", request_id: id, revision });
-        // APPENDED confirms injection, not actual speech. Keep RESULT_AVAILABLE.
-        this.log({ type: "append_confirmed", request_id: id, revision });
-      } else this.handle({ type: "export_blocked", request_id: id, revision });
+      await this.speech.enqueue(result.status === "question" ? "question" : "result", r.session_alias, async () => {
+        if (!this.live.awake) { this.handle({ type: "export_blocked", request_id: id, revision }); return; }
+        const decision = await this.live.egress.emit("commentary", result.text, r.session_alias, context,
+          this.delegation(id, revision), () => this.handle({ type: "export_result", request_id: id, revision }));
+        this.log({ type: "egress", request_id: id, revision, allowed: decision.allowed, reason: decision.reason });
+        if (decision.allowed) {
+          this.handle({ type: "export_result", request_id: id, revision });
+          // APPENDED confirms injection, not actual speech. Keep RESULT_AVAILABLE.
+          this.log({ type: "append_confirmed", request_id: id, revision });
+        } else this.handle({ type: "export_blocked", request_id: id, revision });
+      });
     } catch {
       this.handle({ type: "export_result", request_id: id, revision });
       this.log({ type: "append_unconfirmed", request_id: id, revision });
     } finally { this.#busy.delete(key); }
   }
   transcript(event: TranscriptEvent) {
+    if (event.type === "fragment") this.#fragmentFocus.set(this.#transcripts.fragments.length, { focused: { ...this.focused }, spokenAt: this.#now(), pinned: this.pinned && { ...this.pinned } });
     const stepped = transcriptStep(this.#transcripts, event, this.#now()); this.#transcripts = stepped.state;
     for (const a of stepped.ready) {
-      this.handle({ type: "transcript", delegation_id: a.id, text: a.text });
+      this.#captured = a.range.sequences.map(s => this.#fragmentFocus.get(s)!).filter(Boolean).sort((a, b) => a.spokenAt - b.spokenAt)[0];
+      for (const sequence of a.range.sequences) this.#fragmentFocus.delete(sequence);
+      try { this.handle({ type: "transcript", delegation_id: a.id, text: a.text }); } finally { this.#captured = undefined; }
       const d = this.requests.snapshot().delegations.find(d => d.id === a.id);
       const r = d?.request_id && currentRequest(this.requests.snapshot(), d.request_id);
       if (r && r.state === "READY") {
         const s = this.sessions.get(r.session_alias), p = s && sessionPolicy(this.options.policy(), s.alias, s.cwd);
         if (!p || p.level === "off") this.log({ type: "ask", request_id: r.id, text: "That session is not available by voice." });
-        else if (s?.send) this.handle({ type: "dispatch", request_id: r.id, revision: r.revision });
+        else if (s?.send && s.connected && s.ready) this.handle({ type: "dispatch", request_id: r.id, revision: r.revision });
       }
     }
   }
@@ -230,11 +347,13 @@ export class Broker {
     if (this.#active) throw new Error("Voice already active");
     const daily = this.ledger.snapshot().filter(u => u.day === new Date(this.#now()).toISOString().slice(0, 10)).reduce((s, u) => s + u.usd, 0);
     if (daily >= this.ledger.caps.daily_usd) throw new Error("Daily voice cap reached");
-    this.#epoch = crypto.randomUUID(); this.#epochStarted = this.#now(); this.#transcripts = emptyTranscripts();
+    this.#epoch = crypto.randomUUID(); this.#epochStarted = this.#now(); this.#transcripts = emptyTranscripts(); this.#fragmentFocus.clear();
     this.ledger.handle({ type: "session.started", voice_epoch: this.#epoch }, this.#now());
     this.live.wake(); this.#active = true;
   }
   tick() {
+    for (const s of this.sessions.expire(this.#now())) this.notResponding(s.alias);
+    if (this.pinned && this.#now() - this.pinned.lastRequestAt >= 300000) this.pinned = null;
     this.transcript({ type: "tick" }); this.handle({ type: "tick" });
     if (this.#active) {
       const actions = this.ledger.handle({ type: "tick", voice_epoch: this.#epoch }, this.#now());
@@ -246,6 +365,12 @@ export class Broker {
   }
   status() { return { caps: this.ledger.caps, voice: this.live.awake ? "awake" : "asleep",
     approval: this.approvalTTY ? "TTY keystroke only" : "unavailable (serve has no TTY)",
-    sessions: [...this.sessions.values()].map(s => ({ alias: s.alias, connected: !!s.send })), requests: this.requests.snapshot().requests,
+    pinned: this.pinned, focused: this.focused,
+    sessions: [...this.sessions.values()].map(s => ({ alias: s.alias, connected: s.connected,
+      state: this.requests.snapshot().requests.filter(r => r.session_alias === s.alias).sort((a, b) => b.updated_at - a.updated_at || b.revision - a.revision)[0]?.state ?? "idle",
+      focused: focusedAlias([...this.sessions.values()], this.focused, true) === s.alias,
+      pending: this.pending().filter(p => p.session_alias === s.alias).length })), requests: this.requests.snapshot().requests,
     pending: this.pending().map(({ hash, ...candidate }) => candidate), usage: this.ledger.snapshot() }; }
 }
+
+const identifyFocus = () => identify(true);

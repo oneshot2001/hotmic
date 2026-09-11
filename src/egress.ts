@@ -47,8 +47,18 @@ export const payloadHash = (payload: string) => createHash("sha256").update(payl
 export type Ref = { request_id: string; revision: number; session_alias: string };
 export type Candidate = Ref & { text: string; hash: string };
 export type Kind = "thinking" | "commentary" | "instructions";
+export type Notice = { type: "route"; aliases: string[] } | { type: "unavailable" } | { type: "pin" | "clarify" | "offline"; alias: string };
+export function noticeText(notice: Notice): string {
+  switch (notice.type) {
+    case "route": return `Which session? Live: ${notice.aliases.join(", ") || "none"}`;
+    case "unavailable": return "That session is not available by voice.";
+    case "pin": return `Talking to ${notice.alias}.`;
+    case "clarify": return `Is that a correction or a new task for ${notice.alias}?`;
+    case "offline": return `${notice.alias} is not responding`;
+  }
+}
 export type Context = Ref & { cwd: string; policy: Policy | null; secrets: readonly string[];
-  current: boolean; secretsReady?: boolean; source: "reply" | "status" | "hook"; approvedHash?: string };
+  current: boolean; secretsReady?: boolean; source: "reply" | "status" | "hook" | "notice"; notice?: Notice; approvedHash?: string };
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 export function scrub(text: string, secrets: readonly string[], denyRoots: string[], redact: string[]) {
   let clean = text;
@@ -74,6 +84,13 @@ export function scrub(text: string, secrets: readonly string[], denyRoots: strin
 export function egress(kind: Kind, text: string, sessionAlias: string, ctx: Context) {
   const deny = (reason: string) => ({ allowed: false, payloads: [] as string[], reason });
   if (!["thinking", "commentary", "instructions"].includes(kind) || !ctx.current || sessionAlias !== ctx.session_alias) return deny("identity or revision");
+  if (ctx.source === "notice") {
+    const n = ctx.notice;
+    if (kind !== "commentary" || !n || text !== noticeText(n)) return deny("not a notice");
+    if (n.type === "route" && (!n.aliases.every(validAlias) || n.aliases.some(a => !Object.hasOwn(ctx.policy?.sessions ?? {}, a) || ctx.policy!.sessions[a]!.level === "off"))) return deny("notice aliases");
+    if ("alias" in n && (n.alias !== sessionAlias || !validAlias(n.alias) || !sessionPolicy(ctx.policy, n.alias, ctx.cwd) || sessionPolicy(ctx.policy, n.alias, ctx.cwd)!.level === "off")) return deny("notice session");
+    return { allowed: true, payloads: [text], reason: "notice" };
+  }
   const s = sessionPolicy(ctx.policy, sessionAlias, ctx.cwd);
   if (!s || s.level === "off") return deny("off");
   if (ctx.source === "hook") return deny("hook content");
@@ -91,7 +108,7 @@ export function egress(kind: Kind, text: string, sessionAlias: string, ctx: Cont
   while (chars.length) payloads.push(chars.splice(0, 1000).join(""));
   return { allowed: true, payloads, reason: s.level };
 }
-export type Append = Ref & { kind: Kind; content: string; delegation_id: string | null };
+export type Append = Ref & { source?: Context["source"]; kind: Kind; content: string; delegation_id: string | null };
 export type Sender = (append: Append) => Promise<void>;
 export class Egress {
   #send: Sender;
@@ -108,7 +125,7 @@ export class Egress {
     for (const content of decision.payloads) {
       const fresh = decide();
       if (!fresh.allowed || JSON.stringify(fresh.payloads) !== JSON.stringify(decision.payloads)) return { allowed: false, payloads: [], reason: "revoked" };
-      await this.#send({ kind, content, delegation_id, request_id: ctx.request_id, revision: ctx.revision, session_alias: alias });
+      await this.#send({ source: ctx.source, kind, content, delegation_id, request_id: ctx.request_id, revision: ctx.revision, session_alias: alias });
     }
     return decision;
   }

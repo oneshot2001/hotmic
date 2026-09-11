@@ -29,8 +29,10 @@ export function harness(level: Level = "release") {
   const options = { db, live, policy: () => files.policy, secrets: [], now: () => now, log: (e: Record<string, unknown>) => events.push(e) };
   const broker = new Broker(options);
   const token = "a".repeat(64);
-  broker.register("sandbox", files.root, token);
+  broker.register("sandbox", files.root, token, { workspace_ref: "workspace:test", surface_ref: "surface:test" });
   broker.connect("sandbox", token, value => deliveries.push(value));
+  broker.ready("sandbox");
+  broker.focused = { workspace_ref: "workspace:test", surface_ref: "surface:test" };
   broker.wake();
   function request(id = "d1", text = "New task: test") {
     broker.handle({ type: "delegation", id, voice_epoch: "test", offset_ms: 1 });

@@ -85,12 +85,12 @@ test("sleep queues result; next explicit wake exports only authorized result", a
 test("off destination generates ask locally and sends no session bytes", async () => {
   const h = harness("off");
   try {
-    h.broker.event({ type: "session.input_transcript.delta", start_ms: 0, end_ms: 1, delta: "test" });
+    h.broker.event({ type: "session.input_transcript.delta", start_ms: 0, end_ms: 1, delta: "sandbox, test" });
     h.broker.event({ type: "local.silence", silent: true });
     h.broker.event({ type: "session.delegation.created", delegation: { id: "off" }, offset_ms: 1 });
     h.advance(900); await drain();
     expect(h.events.some(e => e.type === "ask" && e.text === "That session is not available by voice.")).toBe(true);
-    expect(h.deliveries).toHaveLength(0); expect(h.live.frames).toHaveLength(0);
+    expect(h.deliveries).toHaveLength(0); expect(h.live.frames.map(f => f.content)).toEqual(["That session is not available by voice."]);
   } finally { h.cleanup(); }
 });
 test("usage snapshots replace, final close finalizes, cancel after append closes voice", async () => {
@@ -111,9 +111,9 @@ test("replacement capability cannot claim a delivery owned by the previous chann
   const h = harness("summary");
   try {
     const old = h.request(); await drain(); h.live.frames.length = 0;
-    h.broker.sessions.get("sandbox")!.send = undefined;
+    h.broker.sessions.disconnect("sandbox");
     const replacement = "b".repeat(64);
-    h.broker.register("sandbox", h.root, replacement);
+    h.broker.register("sandbox", h.root, replacement, { workspace_ref: "workspace:test", surface_ref: "surface:test" });
     h.broker.connect("sandbox", replacement, value => h.deliveries.push(value));
     expect(h.broker.authenticate("sandbox", replacement)).toBe(true);
     for (const name of ["acknowledge", "reply"]) {
@@ -126,14 +126,14 @@ test("replacement capability cannot claim a delivery owned by the previous chann
     expect(h.live.frames.some(f => f.content === "sandbox: Owned result")).toBe(true);
   } finally { h.cleanup(); }
 });
-test("delivery reads policy once for a consistent authorization decision", () => {
+test("routing and delivery each take one policy snapshot", () => {
   const h = harness();
   const policy = spyOn(h.options, "policy");
   try {
     h.live.awake = false;
     h.request();
     expect(h.deliveries).toHaveLength(1);
-    expect(policy).toHaveBeenCalledTimes(1);
+    expect(policy).toHaveBeenCalledTimes(2); // Routing and final delivery authorization.
   } finally { policy.mockRestore(); h.cleanup(); }
 });
 test("export takes one context snapshot per authorization check", async () => {

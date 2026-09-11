@@ -90,7 +90,7 @@ test("malformed framing closes an authenticated channel before subsequent valid 
       socket.input(Buffer.concat([malformed, reply]));
       expect(socket.destroyed).toBe(true);
       expect(h.broker.sessions.get("sandbox")!.send).toBeUndefined();
-      await drain(); expect(h.live.frames).toEqual([]);
+      await drain(); expect(h.live.frames.map(f => f.content)).toEqual(["sandbox is not responding"]);
       expect(h.broker.requests.snapshot().results).toEqual([]);
     } finally { h.cleanup(); }
   }
@@ -102,7 +102,7 @@ test("revoked channel authentication closes instead of treating it as a recovera
     h.broker.sessions.get("sandbox")!.send = undefined;
     const socket = connection(h);
     socket.input(Buffer.from(JSON.stringify({ type: "connect", alias: "sandbox", token: h.token }) + "\n"));
-    h.broker.sessions.get("sandbox")!.token = "b".repeat(64);
+    h.broker.sessions.get("sandbox")!.token_hash = "b".repeat(64);
     socket.input(Buffer.from(JSON.stringify({ type: "tool_call", call_id: "revoked", name: "acknowledge", arguments: meta }) + "\n"));
     expect(socket.destroyed).toBe(true);
     expect(JSON.parse(socket.output.trim().split("\n").at(-1)!)).toEqual({ ok: false, error: "Command rejected" });

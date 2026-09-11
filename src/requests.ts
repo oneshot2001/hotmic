@@ -18,12 +18,12 @@ export type Delegation = { id: string; voice_epoch: string; offset_ms: number; s
 export type RequestStore = { requests: Request[]; deliveries: Delivery[]; results: Result[]; delegations: Delegation[] };
 export const emptyRequests = (): RequestStore => ({ requests: [], deliveries: [], results: [], delegations: [] });
 export const AMBIGUOUS = "AMBIGUOUS" as const;
-export type Route = (text: string) => string;
+export type Route = (text: string) => string | { alias: string; text: string };
 type Reference = { request_id: string; revision: number };
 export type RequestEvent =
   | { type: "delegation"; id: string; voice_epoch: string; offset_ms: number }
   | { type: "transcript"; delegation_id: string; text: string }
-  | { type: "resolve_route"; delegation_id: string; alias: string; intent: "new" | "correction" }
+  | { type: "resolve_route"; delegation_id: string; alias: string; intent: "new" | "correction" | "route" }
   | ({ type: "dispatch" | "export_blocked" | "export_result" | "spoken" | "cancel" | "fail" } & Reference)
   | { type: "delivered" | "acknowledge" | "stop"; delivery_id: string }
   | { type: "reply"; delivery_id: string; status: Result["status"]; text: string }
@@ -56,7 +56,7 @@ export function parseRequestEvent(value: unknown): RequestEvent {
   switch (e.type) {
     case "delegation": valid = strings("id", "voice_epoch") && typeof e.offset_ms === "number" && Number.isFinite(e.offset_ms) && e.offset_ms >= 0; break;
     case "transcript": valid = strings("delegation_id") && typeof e.text === "string"; break;
-    case "resolve_route": valid = strings("delegation_id", "alias") && (e.intent === "new" || e.intent === "correction"); break;
+    case "resolve_route": valid = strings("delegation_id", "alias") && (e.intent === "new" || e.intent === "correction" || e.intent === "route"); break;
     case "dispatch": case "export_blocked": case "export_result": case "spoken": case "cancel": case "fail": valid = reference(); break;
     case "delivered": case "acknowledge": case "stop": valid = strings("delivery_id"); break;
     case "reply": valid = strings("delivery_id") && typeof e.status === "string" && ["completed", "failed", "question"].includes(e.status) && typeof e.text === "string"; break;
@@ -68,7 +68,7 @@ export function parseRequestEvent(value: unknown): RequestEvent {
 }
 
 // Deterministic event-in/action-out. SQLite and transport do not exist here.
-export function requestStep(previous: RequestStore, event: RequestEvent, now: number, route: Route = () => "default") {
+export function requestStep(previous: RequestStore, event: RequestEvent, now: number, route: Route = () => "default", canDispatch: (alias: string) => boolean = () => true) {
   parseRequestEvent(event);
   if (!Number.isFinite(now) || now < 0) throw new Error("Invalid clock");
   const state = structuredClone(previous);
@@ -82,7 +82,7 @@ export function requestStep(previous: RequestStore, event: RequestEvent, now: nu
     for (const d of state.delegations) if (d.request_id === r.id && d.revision === r.revision) d.state = next;
   };
   const dispatch = (r: Request, delegation: Delegation, supersedes?: string) => {
-    if (r.state !== "READY" || deliveryFor(r)) return;
+    if (r.state !== "READY" || deliveryFor(r) || !canDispatch(r.session_alias)) return;
     const id = `delivery:${r.id}:${r.revision}`;
     state.deliveries.push({ id, ...ref(r), delegation_id: delegation.id, state: "DISPATCHING", created_at: now, supersedes: supersedes ?? null });
     r.dispatched_at = now; setState(r, "DISPATCHING");
@@ -103,7 +103,9 @@ export function requestStep(previous: RequestStore, event: RequestEvent, now: nu
       .sort((a, b) => b.updated_at - a.updated_at);
     const inFlight = candidates.find((other) => correctionStates.includes(other.state));
     const needsClarification = candidates.some((other) => ["RECONCILE_REQUIRED", "RESULT_AVAILABLE", "SPOKEN"].includes(other.state));
-    const active = inFlight ?? (!needsClarification && wantsCorrection ? candidates.find((other) => other.state === "READY") : undefined);
+    const active = inFlight ?? (intent === "correction"
+      ? candidates.find(other => other.state === "READY" || other.state === "SPOKEN" || deliveryStates.includes(other.state))
+      : !needsClarification && wantsCorrection ? candidates.find(other => other.state === "READY") : undefined);
     if (active && !fresh && wantsCorrection) {
       const oldDelivery = deliveryFor(active);
       setState(active, "SUPERSEDED");
@@ -116,7 +118,7 @@ export function requestStep(previous: RequestStore, event: RequestEvent, now: nu
       if (oldDelivery) dispatch(next, d, oldDelivery.id);
     } else if ((active || needsClarification) && !fresh) {
       setState(r, "WAITING_ROUTE");
-      if (!(r.notices & ASKED)) { r.notices |= ASKED; actions.push({ type: "ask", ...ref(r), text: `Is this a correction or a new task for ${alias}?` }); }
+      if (!(r.notices & ASKED)) { r.notices |= ASKED; actions.push({ type: "ask", ...ref(r), text: `Is that a correction or a new task for ${alias}?` }); }
     } else setState(r, "READY");
   };
   if (event.type === "delegation") {
@@ -135,10 +137,16 @@ export function requestStep(previous: RequestStore, event: RequestEvent, now: nu
       if (typeof event.text !== "string") throw new Error("Invalid transcript");
       if (r.state !== "WAITING_TRANSCRIPT" || !event.text.trim()) return { state, actions };
       r.text = event.text.trim(); r.notices = 0; setState(r, "WAITING_ROUTE");
-      assign(d, r, route(r.text));
+      const routed = route(r.text);
+      if (typeof routed !== "string") r.text = routed.text;
+      assign(d, r, typeof routed === "string" ? routed : routed.alias);
     } else {
-      if (!["new", "correction"].includes(event.intent) || typeof event.alias !== "string") throw new Error("Invalid route resolution");
-      if (r.state === "WAITING_ROUTE") assign(d, r, event.alias, event.intent);
+      if (!["new", "correction", "route"].includes(event.intent) || typeof event.alias !== "string") throw new Error("Invalid route resolution");
+      if (r.state === "WAITING_ROUTE") {
+        // Resolving the destination may uncover a separate correction/new-task ambiguity.
+        if (!r.session_alias && event.intent === "route") r.notices &= ~ASKED;
+        assign(d, r, event.alias, event.intent === "route" ? undefined : event.intent);
+      }
     }
   } else if (event.type === "tick" || event.type === "recover") {
     for (const r of state.requests) {
@@ -203,7 +211,7 @@ export function requestStep(previous: RequestStore, event: RequestEvent, now: nu
     if (!r || r.revision !== event.revision || ["SUPERSEDED", "CANCELLED", "FAILED", "SPOKEN"].includes(r.state)) return { state, actions };
     if (event.type === "dispatch") {
       const d = state.delegations.find((d) => d.request_id === r.id && d.revision === r.revision);
-      if (d) dispatch(r, d);
+      if (d) dispatch(r, d, state.deliveries.find(v => v.request_id === r.id && v.revision === r.revision - 1)?.id);
     } else if (event.type === "export_blocked") {
       if (["RESULT_LOCAL", "WAITING_USER"].includes(r.state)) setState(r, "EXPORT_BLOCKED");
     } else if (event.type === "export_result") {
@@ -223,7 +231,7 @@ export function requestStep(previous: RequestStore, event: RequestEvent, now: nu
 const tableNames = ["requests", "deliveries", "results", "delegations"] as const;
 export class RequestMachine {
   readonly recoveryActions: Action[];
-  constructor(readonly db: Database, readonly route: Route = () => "default", now = 0) {
+  constructor(readonly db: Database, readonly route: Route = () => "default", now = 0, readonly canDispatch: (alias: string) => boolean = () => true) {
     this.recoveryActions = this.handle({ type: "recover" }, now);
   }
   snapshot(): RequestStore {
@@ -233,7 +241,7 @@ export class RequestMachine {
     // Compute and commit in the same transaction; return actions only after commit.
     return this.db.transaction(() => {
       const previous = this.snapshot();
-      const { state, actions } = requestStep(previous, event, now, this.route);
+      const { state, actions } = requestStep(previous, event, now, this.route, this.canDispatch);
       for (const table of ["results", "deliveries", "delegations", "requests"] as const) this.db.exec(`DELETE FROM ${table}`);
       for (const table of tableNames) for (const row of state[table]) {
         const columns = Object.keys(row);

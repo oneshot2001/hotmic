@@ -84,7 +84,7 @@ export class Live implements LivePort {
       this.#pending.set(event_id, { kind: append.kind, resolve, reject: () => reject(new Error("Append not confirmed")) });
       try {
         // Journal exact authorized text before transport; crash leaves an uncertain export, never an automatic resend.
-        this.options.audit({ type: "outbound", request_id: append.request_id, revision: append.revision, frame });
+        this.options.audit({ type: "outbound", request_id: append.request_id, revision: append.revision, session_alias: append.session_alias, source: append.source, frame });
         this.#send(frame);
       } catch { this.#pending.delete(event_id); reject(new Error("Append failed")); }
     });

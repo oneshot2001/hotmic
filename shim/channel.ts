@@ -67,12 +67,18 @@ export async function serveChannel(
   for await (const bytes of input) { read(bytes); await queue; }
 }
 
+export function startHeartbeat(send: (line: string) => void) {
+  const timer = setInterval(() => send(JSON.stringify({ type: "heartbeat" }) + "\n"), 2000);
+  return () => clearInterval(timer);
+}
 async function main() {
   const path = process.env.HOTMIC_SOCK;
   if (!path) throw new Error("HOTMIC_SOCK is required");
   const socket = createConnection(path);
   socket.on("error", () => { console.error("hotmic socket failed"); process.exitCode = 1; });
   await new Promise<void>((resolve, reject) => { socket.once("connect", resolve); socket.once("error", reject); });
+  const heartbeat = process.env.HOTMIC_TOKEN ? startHeartbeat(line => socket.write(line)) : undefined;
+  socket.once("close", () => heartbeat?.());
   const waiting = new Map<string, { resolve: () => void; reject: () => void }>();
   socket.on("close", () => { for (const p of waiting.values()) p.reject(); waiting.clear(); });
   if (process.env.HOTMIC_TOKEN) socket.write(JSON.stringify({ type: "connect", alias: process.env.HOTMIC_ALIAS, token: process.env.HOTMIC_TOKEN }) + "\n");
@@ -103,7 +109,7 @@ async function main() {
         waiting.set(call_id, { resolve: () => { clearTimeout(timer); resolve(); }, reject: () => { clearTimeout(timer); reject(new Error("Broker rejected call")); } });
         socket.write(JSON.stringify({ ...(value as object), call_id }) + "\n");
       }));
-  } finally { socket.destroy(); }
+  } finally { heartbeat?.(); socket.destroy(); }
 }
 
 if (import.meta.main) main().catch((error) => { console.error(String(error)); process.exitCode = 1; });

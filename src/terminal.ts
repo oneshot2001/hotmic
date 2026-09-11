@@ -25,7 +25,7 @@ export function serveTerminal(broker: Broker, input: Input = process.stdin, writ
     render() {
       const status = broker.status(), candidate = broker.pending()[0];
       const latest = [...status.requests].sort((a, b) => b.updated_at - a.updated_at)[0];
-      const line = `${status.sessions[0]?.alias ?? "No session"} | ${latest?.state ?? "idle"} | ${status.voice} | $${status.usage.reduce((sum, u) => sum + u.usd, 0).toFixed(4)}\nLast request: ${JSON.stringify(latest?.text ?? "")}\nApproval: ${status.approval}\n${candidate ? `${JSON.stringify(candidate.text)}\n${candidate.request_id} rev ${candidate.revision}\n${tty ? "[a]pprove / [r]eject" : "Release held: serve requires a TTY."}` : ""}`;
+      const line = `${status.sessions.map(s => `${s.alias} | ${s.state} | ${s.connected ? "connected" : "disconnected"} | ${s.focused ? "*" : ""} | ${s.pending}`).join("\n") || "No sessions"}\n${status.voice} | $${status.usage.reduce((sum, u) => sum + u.usd, 0).toFixed(4)}\nLast request: ${JSON.stringify(latest?.text ?? "")}\nApproval: ${status.approval}\n${candidate ? `${JSON.stringify(candidate.text)}\n${candidate.request_id} rev ${candidate.revision}\n${tty ? "[a]pprove / [r]eject" : "Release held: serve requires a TTY."}` : ""}`;
       if (line !== previous) { write(line); previous = line; displayed = candidate; }
     },
     close() {

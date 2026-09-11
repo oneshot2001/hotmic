@@ -2,6 +2,7 @@ import { createConnection, createServer, type Socket } from "node:net";
 import { chmodSync } from "node:fs";
 import { jsonLines, object } from "../shim/protocol";
 import type { Broker } from "./broker";
+import { validRefs, type Refs } from "./registry";
 export async function listen(path: string, broker: Broker, controlToken: string) {
   const clients = new Set<Socket>();
   const server = createServer(socket => {
@@ -41,7 +42,9 @@ export function attachSocket(socket: Socket, broker: Broker, controlToken: strin
         switch (value.command) {
           case "register":
             if (typeof value.alias !== "string" || typeof value.cwd !== "string" || typeof value.capability !== "string") throw new Error("Invalid registration");
-            broker.register(value.alias, value.cwd, value.capability); break;
+            const refs = { workspace_ref: value.workspace_ref ?? null, surface_ref: value.surface_ref ?? null } as Refs;
+            if (!validRefs(refs)) throw new Error("Invalid session refs");
+            broker.register(value.alias, value.cwd, value.capability, refs); break;
           case "status": result = broker.status(); break;
           case "usage": result = broker.ledger.snapshot(); break;
           case "wake": broker.wake(); break;
@@ -50,8 +53,9 @@ export function attachSocket(socket: Socket, broker: Broker, controlToken: strin
         }
         send({ ok: true, result }); ended = true; socket.end(); return;
       }
-      if (!broker.authenticate(alias, token)) throw new Error("Unauthorized session");
-      if (value.type === "channel_ready") broker.ready(alias);
+      if (!broker.authenticate(alias, token) || broker.sessions.get(alias)?.send !== send) throw new Error("Unauthorized session");
+      if (value.type === "heartbeat") broker.heartbeat(alias, token);
+      else if (value.type === "channel_ready") broker.ready(alias);
       else if (value.type === "channel_initialize") { /* P0 protocol negotiation remains in the shim. */ }
       else if (value.type === "tool_call") {
         try { broker.tool(alias, token, value.name, value.arguments); }

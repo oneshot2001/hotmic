@@ -11,6 +11,8 @@ import { Live } from "./live";
 import { control, listen } from "./sock";
 import { execInteractive } from "./exec";
 import { serveTerminal } from "./terminal";
+import { identify } from "./cmux";
+import { MIN_ACTIVATION_USD } from "./ledger";
 export const TESTED_CLAUDE_VERSION = "2.1.269";
 export const stateDir = () => process.env.HOTMIC_STATE ?? resolve(homedir(), ".local/state/hotmic");
 export const childEnv = (env: NodeJS.ProcessEnv) => Object.fromEntries(Object.entries(env).filter(([key, value]) => value !== undefined && !["OPENAI_API_KEY", "HOTMIC_CONTROL_TOKEN"].includes(key))) as Record<string, string>;
@@ -62,7 +64,7 @@ async function serve() {
   const lock = join(dir, "broker.lock");
   writeFileSync(lock, String(process.pid), { flag: "wx", mode: 0o600 });
   const activationCap = Number(process.env.HOTMIC_MAX_USD ?? "0.50");
-  if (!Number.isFinite(activationCap) || activationCap <= 11 / 60 * 0.05 || activationCap > 0.50) { rmSync(lock); throw new Error("HOTMIC_MAX_USD must be greater than $0.00917 and at most $0.50"); }
+  if (!Number.isFinite(activationCap) || activationCap <= MIN_ACTIVATION_USD || activationCap > 0.50) { rmSync(lock); throw new Error("HOTMIC_MAX_USD must be greater than $0.00917 and at most $0.50"); }
   let broker: Broker | undefined, hub: Awaited<ReturnType<typeof listen>> | undefined;
   let db: ReturnType<typeof openDB> | undefined;
   let terminal: ReturnType<typeof serveTerminal> | undefined, render: ReturnType<typeof setInterval> | undefined;
@@ -101,7 +103,7 @@ export async function main(args = process.argv.slice(2)) {
     const config = launchConfig(alias, cwd, token, run, join(dir, "hotmic.sock"), loadPolicy(), args.slice(4));
     writeFileSync(join(run, "settings.json"), JSON.stringify(config.settings, null, 2), { mode: 0o600 });
     writeFileSync(join(run, "mcp.json"), JSON.stringify(config.mcp, null, 2), { mode: 0o600 });
-    await localControl("register", { alias, cwd, capability: token });
+    await localControl("register", { alias, cwd, capability: token, ...await identify() });
     const executable = Bun.which("claude");
     if (!executable) throw new Error("Claude executable missing");
     await execInteractive(executable, config.args, config.env);
