@@ -14,9 +14,10 @@ export function hookMetadata(input: unknown) {
 async function main() {
   try {
     const body = JSON.stringify(hookMetadata(JSON.parse(await Bun.stdin.text())));
-    if (!process.env.HOTMIC_SOCK) throw new Error("HOTMIC_SOCK is required");
+    const sock = process.argv[2] ?? process.env.HOTMIC_SOCK;
+    if (!sock) throw new Error("socket path argument or HOTMIC_SOCK is required");
     await new Promise<void>((resolve, reject) => {
-      const req = request({ socketPath: process.env.HOTMIC_SOCK, path: "/hook", method: "POST",
+      const req = request({ socketPath: sock, path: "/hook", method: "POST",
         headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
       }, (res) => { res.resume(); res.on("end", () => res.statusCode === 200 ? resolve() : reject(new Error("Hook POST rejected"))); });
       req.setTimeout(2000, () => req.destroy(new Error("Hook POST timed out")));

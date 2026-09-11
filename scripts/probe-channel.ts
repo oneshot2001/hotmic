@@ -77,7 +77,7 @@ try {
     command: process.execPath, args: ["--no-env-file", resolve(root, "shim/channel.ts")], env: { HOTMIC_SOCK: sockPath },
   } } }, null, 2));
   await Bun.write(`${runDir}/settings.json`, JSON.stringify({ hooks: Object.fromEntries(hookEvents.map((event) => [event, [{
-    hooks: [{ type: "command", command: process.execPath, args: ["--no-env-file", resolve(root, "shim/hook.ts")], timeout: 5 }],
+    hooks: [{ type: "command", command: process.execPath, args: ["--no-env-file", resolve(root, "shim/hook.ts"), sockPath], timeout: 5 }],
   }]])) }, null, 2));
   await new Promise<void>((resolve, reject) => { server.once("error", reject); server.listen(sockPath, resolve); });
   chmodSync(sockPath, 0o600);

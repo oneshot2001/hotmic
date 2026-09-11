@@ -56,7 +56,7 @@ Result (Codex sandbox): BLOCKED, listener `EPERM`. Result (Claude, outside sandb
 | Claude result mentions marker | FAIL |
 | Existing user SessionStart hooks still fire | Observable now: `--verbose` stream emits `system/hook_started` per hook; run 4 shows four SessionStart hooks firing (user's two + ours). Assertion not yet wired. |
 
-Interactive acceptance (`--serve`): pending human run.
+Interactive acceptance (`--serve`, `.runs/p0/channel-1789160429562.jsonl`, human ran the printed command in a cmux pane): **PASS.** Idle delivery with no nudge: notification → `acknowledge` **3.9 s** → `reply` with the exact marker and `status: completed` **7.6 s** (Fable 5.1 at low effort). Claude's startup banner printed "server:hotmic · no MCP server configured with that name" and the channel still delivered; treat that line as cosmetic on 2.1.269. Hooks assertion was FALSE in this run for a probe bug, not a Claude one: the hook relay read the socket path from `HOTMIC_SOCK`, which the interactive shell did not have. Fixed: the socket path is now passed as a hook argument. Re-verify hooks in the next interactive run.
 
 The user's settings contain two SessionStart hook entries. They were read only to count entries, never changed or copied into the probe settings. `claude --help` exposes no effective-settings dump, so the probe documents this verification limitation. It leaves user settings enabled and uses an additive `--settings` file. Seeing the probe's own SessionStart is not evidence that the user's hooks fired. A human must check the existing hooks' normal observable effects during the rerun; **channel compatibility with existing hooks intact is not yet established**.
 
@@ -115,7 +115,7 @@ unset OPENAI_API_KEY
 | Question | Current answer |
 | --- | --- |
 | Delegation offset versus last-fragment distribution? | Awaiting 20-utterance human audio experiment. |
-| Channel works on this Claude version with existing hooks intact? | `-p`: NO delivery. Interactive: pending `--serve` run. Hooks metadata-only: PASS. User hooks: observed firing in the stream, assertion not wired. |
+| Channel works on this Claude version with existing hooks intact? | **Interactive: PASS** (ack 3.9 s, reply 7.6 s, idle delivery). `-p`: NO delivery. Hooks metadata-only: PASS in `-p`; interactive re-check pending after the socket-arg fix. User hooks: observed firing in the `-p` stream, assertion not wired. |
 | Which cmux field identifies the focused surface? | `identify --no-caller` → `focused.surface_ref` / `focused.workspace_ref`. Multi-pane stability pending. |
 | Headset versus speaker echo verdict? | Awaiting human audio experiments. |
 
