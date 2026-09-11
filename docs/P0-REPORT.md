@@ -87,13 +87,13 @@ Run 2 (headphones, `--echo-test`, `.runs/p0/audio-1789161316803.jsonl`): 78 s, $
 | 2 | 800 ms | 1.15 s | 2.35 s | "Rename the add function to plus" |
 | 3 | 2000 ms | 2.33 s | 3.48 s | "Commit everything with the message test" |
 
-Delegation-offset versus last-fragment distribution (n=4, mid-sentence pauses up to 4 s): the model waits **0.8–2.0 s of silence after the last transcript fragment** before delegating (one case simultaneous, −200 ms). Arrival at the client is 1.2–2.3 s after the last fragment. The "delegation fires before the sentence ends" risk did not appear; the plan's 650 ms + 250 ms settle rule is safe with margin. Note: sox reported the headset can't do 24 kHz and captured at 48 kHz with internal resample; transcripts were unaffected.
+Delegation-offset versus last-fragment distribution (n=9 across both runs, mid-sentence pauses up to 4 s): the model waits **0.8–2.0 s of silence after the last transcript fragment** before delegating (one case simultaneous, −200 ms). Arrival at the client is 1.2–2.3 s after the last fragment. The "delegation fires before the sentence ends" risk did not appear; the plan's 650 ms + 250 ms settle rule is safe with margin. Note: sox reported the headset can't do 24 kHz and captured at 48 kHz with internal resample; transcripts were unaffected.
 
 Filler despite "No filler phrases" in instructions: "Okay, I'll take care of it." / "Sure, I'll give you the summary." / "Alright, I'll go do that." / "No problem, I'll handle it." → the live prompt needs an explicit allowed-phrase list, not a prohibition (P1/P2).
 
 Headset echo result: no repeated words observed; none expected on a headset.
 
-Speaker echo / false-interruption result:
+Speaker echo / false-interruption result (Mac speakers + built-in mic, `--echo-test`, `.runs/p0/audio-1789161673272.jsonl`): **PASS by data.** 78 s, $0.065, **5/5 requests captured exactly**; offset − last fragment end 0.4–1.0 s; arrival 0.8–1.3 s after last fragment; local silence 2.0–2.7 s before delegation; a 2 s mid-sentence pause survived. Echo heuristic: zero repeated words in input within 3 s of any output transcript, so the model's own speech (including the spoken "Got it: …" echoes of the requests) did not leak back through the built-in mic. Human listening verdict: pending. Speaker mode is viable on the Mac Studio; headset stays recommended in the README until a noisier room is tested.
 
 The optional echo check flags repeated completed output words in input within three seconds of transcript arrival. Words split across deltas are assembled; a final word without a delimiter remains pending. It is a diagnostic heuristic, not acoustic echo cancellation or an automatic pass verdict. Listen for speaker feedback and false interruptions, and inspect candidate events. No production playback gating or Swift helper is included in P0.
 
@@ -127,10 +127,10 @@ unset OPENAI_API_KEY
 
 | Question | Current answer |
 | --- | --- |
-| Delegation offset versus last-fragment distribution? | n=4: −0.2 to +2.0 s after last fragment end; pauses up to 4 s inside a sentence did not split it. Settle rule safe. |
+| Delegation offset versus last-fragment distribution? | n=9: −0.2 to +2.0 s after last fragment end (median ~0.8 s); pauses up to 4 s inside a sentence did not split it. Settle rule safe. **P0 EXIT: all four questions answered.** |
 | Channel works on this Claude version with existing hooks intact? | **Interactive: PASS** (ack 3.9 s, reply 7.6 s, idle delivery). `-p`: NO delivery. Hooks metadata-only: PASS in `-p`; interactive re-check pending after the socket-arg fix. User hooks: observed firing in the `-p` stream, assertion not wired. |
 | Which cmux field identifies the focused surface? | `identify --no-caller` → `focused.surface_ref` / `focused.workspace_ref`. Multi-pane stability pending. |
-| Headset versus speaker echo verdict? | Headset clean. Speaker run pending. |
+| Headset versus speaker echo verdict? | Both clean (0 echo candidates). Swift audio helper NOT needed for P1–P3; sox path holds. |
 
 ## Review findings carried into P1 (Claude reviewer pass, 2026-09-11)
 
