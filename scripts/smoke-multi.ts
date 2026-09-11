@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -65,8 +65,14 @@ export async function smokeMulti(grade: boolean, budget: number) {
     const root = join(homedir(), "Projects/hotmic-smoke"); mkdirSync(root, { recursive: true });
     for (const alias of multiAliases) {
       const repo = join(root, alias);
-      mkdirSync(repo); // Refuse existing repositories; never overwrite the operator's work.
-      writeFileSync(join(repo, "fixture.txt"), `Disposable hotmic smoke fixture for ${alias}.\n`, { flag: "wx" });
+      // Reuse a repo this script created earlier (identified by its fixture); refuse anything else.
+      const fixture = join(repo, "fixture.txt");
+      try { mkdirSync(repo); } catch (error) {
+        if (!(error instanceof Error && "code" in error && error.code === "EEXIST")) throw error;
+        if (!existsSync(fixture) || !readFileSync(fixture, "utf8").startsWith("Disposable hotmic smoke fixture")) throw new Error(`${repo} exists and is not a hotmic smoke repo; remove it or choose another root`);
+        continue;
+      }
+      writeFileSync(fixture, `Disposable hotmic smoke fixture for ${alias}.\n`, { flag: "wx" });
       const init = Bun.spawnSync(["git", "init", "--quiet", repo], { stdout: "ignore", stderr: "ignore" });
       if (init.exitCode !== 0) throw new Error("Could not initialize disposable smoke repo");
     }
