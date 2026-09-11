@@ -6,3 +6,4 @@ node_modules/
 docs/refs/
 dist/
 .DS_Store
+.runs-codex-*.log

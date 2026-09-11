@@ -1,0 +1,30 @@
+import { request } from "node:http";
+import { object } from "./protocol";
+
+export const metadataKeys = ["session_id", "hook_event_name", "tool_name", "turn_id", "message_id", "parent_message_id", "tool_use_id"];
+export const hookEvents = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"];
+
+export function hookMetadata(input: unknown) {
+  if (!object(input) || typeof input.hook_event_name !== "string" || !hookEvents.includes(input.hook_event_name) || typeof input.session_id !== "string" || !input.session_id) {
+    throw new Error("Invalid hook metadata");
+  }
+  return Object.fromEntries(metadataKeys.flatMap((key) => typeof input[key] === "string" ? [[key, input[key]]] : []));
+}
+
+async function main() {
+  try {
+    const body = JSON.stringify(hookMetadata(JSON.parse(await Bun.stdin.text())));
+    if (!process.env.HOTMIC_SOCK) throw new Error("HOTMIC_SOCK is required");
+    await new Promise<void>((resolve, reject) => {
+      const req = request({ socketPath: process.env.HOTMIC_SOCK, path: "/hook", method: "POST",
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      }, (res) => { res.resume(); res.on("end", () => res.statusCode === 200 ? resolve() : reject(new Error("Hook POST rejected"))); });
+      req.setTimeout(2000, () => req.destroy(new Error("Hook POST timed out")));
+      req.on("error", reject);
+      req.end(body);
+    });
+  } catch { console.error("hotmic metadata hook failed"); process.exitCode = 1; }
+  finally { console.log("{}"); }
+}
+
+if (import.meta.main) await main();
