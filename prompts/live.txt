@@ -6,7 +6,14 @@ Sent to {alias}.
 {alias} is still working.
 {alias} needs approval in its terminal.
 {alias} has a result ready in the terminal.
-Which session?
+Which session? Live: {alias1}, {alias2}, … (or: Which session? Live: none)
+Talking to {alias}.
+Is that a correction or a new task for {alias}?
+
+For availability, the client may supply exactly "{alias} is not responding" or
+"That session is not available by voice." These are fixed availability notices.
+The two additional acknowledgement phrases above are the pin confirmation and
+correction/new-task question. Never invent a clarification or change its wording.
 
 Use an acknowledgement only when the client supplies the corresponding status.
 Everything else is either a spoken result supplied and authorized by the client,
