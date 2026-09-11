@@ -73,7 +73,17 @@ async function main() {
   const socket = createConnection(path);
   socket.on("error", () => { console.error("hotmic socket failed"); process.exitCode = 1; });
   await new Promise<void>((resolve, reject) => { socket.once("connect", resolve); socket.once("error", reject); });
+  const waiting = new Map<string, { resolve: () => void; reject: () => void }>();
+  socket.on("close", () => { for (const p of waiting.values()) p.reject(); waiting.clear(); });
+  if (process.env.HOTMIC_TOKEN) socket.write(JSON.stringify({ type: "connect", alias: process.env.HOTMIC_ALIAS, token: process.env.HOTMIC_TOKEN }) + "\n");
   socket.on("data", jsonLines((value) => {
+    if (object(value) && typeof value.ok === "boolean") {
+      if (typeof value.call_id === "string") {
+        const p = waiting.get(value.call_id); waiting.delete(value.call_id);
+        value.ok ? p?.resolve() : p?.reject();
+      } else if (!value.ok) socket.destroy();
+      return;
+    }
     if (!object(value) || typeof value.content !== "string" || !identity(value.meta)) {
       console.error("Invalid channel notification"); return;
     }
@@ -84,7 +94,14 @@ async function main() {
   try {
     await serveChannel(Bun.stdin.stream(), (line) => { process.stdout.write(line); }, (value) =>
       new Promise<void>((resolve, reject) => {
-        socket.write(JSON.stringify(value) + "\n", (error) => error ? reject(error) : resolve());
+        if (!process.env.HOTMIC_TOKEN) {
+          socket.write(JSON.stringify(value) + "\n", (error) => error ? reject(error) : resolve());
+          return;
+        }
+        const call_id = crypto.randomUUID();
+        const timer = setTimeout(() => { waiting.delete(call_id); reject(new Error("Broker timed out")); }, 3000);
+        waiting.set(call_id, { resolve: () => { clearTimeout(timer); resolve(); }, reject: () => { clearTimeout(timer); reject(new Error("Broker rejected call")); } });
+        socket.write(JSON.stringify({ ...(value as object), call_id }) + "\n");
       }));
   } finally { socket.destroy(); }
 }
