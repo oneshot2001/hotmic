@@ -1,0 +1,7 @@
+{
+  "default": "off",
+  "denyRoots": [],
+  "sessions": {
+    "sandbox": { "root": "~/Projects/voice-sandbox", "level": "release", "aliases": ["sandbox"] }
+  }
+}
