@@ -20,7 +20,7 @@ Status: PLAN ONLY. Nothing built. Awaiting Matthew's go.
 | Topic | Plan A (Fable) | Plan B (Astra) | Ruling |
 |---|---|---|---|
 | Audio capture/playback | sox `rec`/`play` pipes (already installed, zero build) | Swift AVAudioEngine helper with voice processing, 20 ms frames, ≤150 ms output gating | **A first, B if needed.** P0 uses sox. The echo/false-interrupt experiment decides whether the Swift helper is built in P4. Output gating is implemented on the sox playback pipe (kill and clear queue on local speech onset). |
-| Privacy default | Per-session levels off/status/summary/full; `summary` = reply text after scrub, default for allowlisted repos | Default-deny; free text requires **exact-text release** (human approves the payload hash locally); repo allowlist is routing permission, not export permission | **B's model, A's convenience as opt-in.** Levels: `off` (default, unknown or AV), `status` (templated lines only), `release` (reply shown locally, spoken only after a local approve), `summary` (reply spoken after scrub; opt-in per session, documented as convenience not confinement). Path containment by realpath component, denied roots override. Vault session starts at `status` because 02-Projects/alpha-vision lives inside it. |
+| Privacy default | Per-session levels off/status/summary/full; `summary` = reply text after scrub, default for allowlisted repos | Default-deny; free text requires **exact-text release** (human approves the payload hash locally, TTY keystroke only); repo allowlist is routing permission, not export permission | **B's model, A's convenience as opt-in.** Levels: `off` (default, unknown or AV), `status` (templated lines only), `release` (reply shown locally, spoken only after a serve-pane TTY keystroke), `summary` (reply spoken after scrub; opt-in per session, documented as convenience not confinement). Path containment by realpath component, denied roots override. Vault session starts at `status` because 02-Projects/alpha-vision lives inside it. |
 | Name matching | Fuzzy ≥0.8 similarity + sticky last-addressed 90 s | Explicit registered aliases only, no fuzzy; destination captured at utterance start | **B.** Explicit aliases with pronunciation variants in policy. Destination locked at utterance start so a pane switch mid-sentence cannot redirect. A's sticky fallback is kept as B's "pinned" destination ("talk to aar"). |
 | Stale speech already in the voice model | Skip the append if revision is newer | Retire the voice epoch: close and reopen seeded only with current authorized state | **Both, tiered.** Revision check before every append (cheap, always). Epoch retirement only when a superseded result was already appended as commentary. |
 | Persistence | In-memory state, SQLite ledger only | SQLite for delegations, requests, revisions, deliveries, results, exports, usage; crash reconciliation state | **B, trimmed.** Tables: `sessions`, `requests` (with revision), `deliveries`, `results`, `usage`. `RECONCILE_REQUIRED` state after crash between emit and journal; never auto-rerun. |
@@ -80,8 +80,8 @@ mic/speaker (sox; Swift helper optional later)
 ```
 
 - Unknown session, malformed identity, or missing policy → fail closed.
-- `summary` scrub runs on the complete assembled payload before chunking: cred-store values, key shapes, absolute paths under denyRoots, per-session redact list. Documented as a convenience layer; `release` is the confinement layer.
-- `release` UI: the candidate reply prints in the broker's own cmux pane with an approve keystroke bound to that payload hash and revision. Voice and Claude tools cannot approve.
+- `summary` scrub runs on the complete assembled payload before chunking: cred-store values, key shapes, absolute paths under denyRoots, per-session redact list. Known-secret prefix/suffix matching requires fragments of at least eight characters; deliberate splitting across three or more replies is out of scope. Documented as a convenience layer; `release` is the confinement layer.
+- `release` UI: **TTY keystroke only**. The candidate reply prints in the `hotmic serve` pane; its own `process.stdin` must be a TTY in raw mode. The approve keystroke is bound to the displayed payload hash and revision, held in process memory. No CLI or control-socket approve/reject command exists, and status omits approval hashes. Without a serve TTY, release cannot be approved and status reports that limitation. Voice and Claude tools cannot approve.
 - Tests intercept serialized outbound frames and assert zero unauthorized bytes: fragmented secret at every byte boundary, canary read from outside the root and echoed through reply/hooks, symlink and sibling-prefix path escapes, forged session metadata, cross-session reply, revoked release, superseded revision, malformed UTF-8 token.
 
 ## Router (final)
@@ -100,7 +100,7 @@ sox capture at 24 kHz mono pcm16 in 20 ms frames; playback queue 80–120 ms tar
 
 ```
 <tool>/
-  bin/<tool>              # serve | claude | wake | status | usage | doctor | approve
+  bin/<tool>              # serve | claude | wake | sleep | status | usage | doctor
   src/{cli,broker,live,transcripts,requests,router,cmux,egress,ledger,db,audio,protocol}.ts
   shim/{channel,hook}.ts
   config/policy.example.json
