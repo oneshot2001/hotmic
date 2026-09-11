@@ -87,7 +87,7 @@ try {
   const prompt = "A hotmic channel message will arrive after this turn. When it does, call acknowledge and reply with its text verbatim and status completed, copying its metadata to both calls, then repeat that text in your final answer. For now, answer only: ready.";
   record({ type: "launch", command: ["claude", ...args], serve });
   if (serve) {
-    const interactive = ["claude", "-n", "hotmic-p0", ...args.filter((a) => a !== "-p" && a !== "--verbose" && !a.includes("stream-json") && a !== "--input-format" && a !== "--output-format")];
+    const interactive = ["claude", "-n", "hotmic-p0", ...args.filter((a) => a !== "-p" && a !== "--verbose" && !a.includes("stream-json") && a !== "--input-format" && a !== "--output-format" && a !== "--no-session-persistence")];
     console.log(`\nRun this in a cmux pane (then, in Claude, type: ${prompt})\n\n  cd ${runDir} && ${interactive.map((a) => (a.includes(" ") || a === "" ? JSON.stringify(a) : a)).join(" ")}\n\nWaiting up to 10 min for the reply tool call...`);
     await new Promise<void>((done) => {
       const poll = setInterval(() => { if (channelSocket && !sent) { sent = true; channelSocket.write(JSON.stringify({ content: marker, meta }) + "\n"); record({ type: "notification_sent", content: marker, meta }); console.log("notification sent; Claude should now call acknowledge + reply"); } if (replied) { clearInterval(poll); done(); } }, 500);
