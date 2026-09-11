@@ -1,0 +1,70 @@
+{"at": 898, "event": {"type": "session.started", "client_event_id": "p0_start"}}
+{"at": 9826, "event": {"type": "session.input_transcript.delta", "start_ms": 8200, "end_ms": 8400, "delta": " Add a"}}
+{"at": 10685, "event": {"type": "session.input_transcript.delta", "start_ms": 9000, "end_ms": 9200, "delta": " subtract"}}
+{"at": 11371, "event": {"type": "session.input_transcript.delta", "start_ms": 9800, "end_ms": 10000, "delta": " function"}}
+{"at": 11891, "event": {"type": "session.input_transcript.delta", "start_ms": 10200, "end_ms": 10400, "delta": " to"}}
+{"at": 12390, "event": {"type": "session.input_transcript.delta", "start_ms": 10800, "end_ms": 11000, "delta": " calc"}}
+{"at": 12874, "event": {"type": "session.input_transcript.delta", "start_ms": 11200, "end_ms": 11400, "delta": " dot"}}
+{"at": 13419, "event": {"type": "session.input_transcript.delta", "start_ms": 11800, "end_ms": 12000, "delta": " py"}}
+{"at": 15458, "event": {"type": "session.input_transcript.delta", "start_ms": 13800, "end_ms": 14000, "delta": ", run"}}
+{"at": 15639, "event": {"type": "session.input_transcript.delta", "start_ms": 14000, "end_ms": 14200, "delta": " the"}}
+{"at": 15746, "event": {"type": "session.usage.updated", "usage": {"seconds": 14}, "context_window": {"usage_ratio": 0.008515625}}}
+{"at": 16375, "event": {"type": "session.input_transcript.delta", "start_ms": 14800, "end_ms": 15000, "delta": " test"}}
+{"at": 16526, "event": {"type": "session.input_transcript.delta", "start_ms": 15000, "end_ms": 15200, "delta": ", and"}}
+{"at": 16855, "event": {"type": "session.input_transcript.delta", "start_ms": 15200, "end_ms": 15400, "delta": " tell"}}
+{"at": 17040, "event": {"type": "session.input_transcript.delta", "start_ms": 15400, "end_ms": 15600, "delta": " me"}}
+{"at": 17165, "event": {"type": "session.input_transcript.delta", "start_ms": 15600, "end_ms": 15800, "delta": " what"}}
+{"at": 18329, "event": {"type": "session.input_transcript.delta", "start_ms": 16600, "end_ms": 16800, "delta": " failed"}}
+{"at": 18330, "event": {"type": "session.delegation.created", "offset_ms": 16600, "delegation": {"id": "item_EN2spvnM9rDXDjFrvrAE6", "type": "delegation", "target": "client"}}}
+{"at": 18464, "event": {"type": "session.output_transcript.delta", "start_ms": 16800, "end_ms": 17000, "delta": " Okay,"}}
+{"at": 18677, "event": {"type": "session.output_transcript.delta", "start_ms": 17000, "end_ms": 17200, "delta": " I'll"}}
+{"at": 18818, "event": {"type": "session.output_transcript.delta", "start_ms": 17200, "end_ms": 17400, "delta": " take"}}
+{"at": 18994, "event": {"type": "session.output_transcript.delta", "start_ms": 17400, "end_ms": 17600, "delta": " care"}}
+{"at": 19161, "event": {"type": "session.output_transcript.delta", "start_ms": 17600, "end_ms": 17800, "delta": " of"}}
+{"at": 19472, "event": {"type": "session.output_transcript.delta", "start_ms": 17800, "end_ms": 18000, "delta": " it."}}
+{"at": 20764, "event": {"type": "session.input_transcript.delta", "start_ms": 19200, "end_ms": 19400, "delta": " Open"}}
+{"at": 24862, "event": {"type": "session.input_transcript.delta", "start_ms": 23400, "end_ms": 23600, "delta": ". Open"}}
+{"at": 26732, "event": {"type": "session.input_transcript.delta", "start_ms": 25400, "end_ms": 25600, "delta": " the"}}
+{"at": 27612, "event": {"type": "session.input_transcript.delta", "start_ms": 26200, "end_ms": 26400, "delta": ", read"}}
+{"at": 27785, "event": {"type": "session.input_transcript.delta", "start_ms": 26400, "end_ms": 26600, "delta": " me"}}
+{"at": 27940, "event": {"type": "session.input_transcript.delta", "start_ms": 26600, "end_ms": 26800, "delta": " the"}}
+{"at": 28481, "event": {"type": "session.input_transcript.delta", "start_ms": 27000, "end_ms": 27200, "delta": " summary"}}
+{"at": 28614, "event": {"type": "session.input_transcript.delta", "start_ms": 27200, "end_ms": 27400, "delta": " of"}}
+{"at": 28989, "event": {"type": "session.input_transcript.delta", "start_ms": 27600, "end_ms": 27800, "delta": " it"}}
+{"at": 30746, "event": {"type": "session.usage.updated", "usage": {"seconds": 29}, "context_window": {"usage_ratio": 0.011859375}}}
+{"at": 31130, "event": {"type": "session.delegation.created", "offset_ms": 29600, "delegation": {"id": "item_EN2t1kyxJfljbsznzCIVw", "type": "delegation", "target": "client"}}}
+{"at": 31261, "event": {"type": "session.output_transcript.delta", "start_ms": 29800, "end_ms": 30000, "delta": " Sure,"}}
+{"at": 31442, "event": {"type": "session.output_transcript.delta", "start_ms": 30000, "end_ms": 30200, "delta": " I'll"}}
+{"at": 31621, "event": {"type": "session.output_transcript.delta", "start_ms": 30200, "end_ms": 30400, "delta": " give"}}
+{"at": 31789, "event": {"type": "session.output_transcript.delta", "start_ms": 30400, "end_ms": 30600, "delta": " you"}}
+{"at": 31996, "event": {"type": "session.output_transcript.delta", "start_ms": 30600, "end_ms": 30800, "delta": " the summary"}}
+{"at": 32266, "event": {"type": "session.output_transcript.delta", "start_ms": 30800, "end_ms": 31000, "delta": "."}}
+{"at": 37827, "event": {"type": "session.input_transcript.delta", "start_ms": 36600, "end_ms": 36800, "delta": " Rename"}}
+{"at": 38479, "event": {"type": "session.input_transcript.delta", "start_ms": 37200, "end_ms": 37400, "delta": " the"}}
+{"at": 38861, "event": {"type": "session.input_transcript.delta", "start_ms": 37600, "end_ms": 37800, "delta": " add"}}
+{"at": 39389, "event": {"type": "session.input_transcript.delta", "start_ms": 38200, "end_ms": 38400, "delta": " function"}}
+{"at": 39529, "event": {"type": "session.input_transcript.delta", "start_ms": 38400, "end_ms": 38600, "delta": " to"}}
+{"at": 40387, "event": {"type": "session.input_transcript.delta", "start_ms": 39200, "end_ms": 39400, "delta": " plus"}}
+{"at": 41538, "event": {"type": "session.delegation.created", "offset_ms": 40200, "delegation": {"id": "item_EN2tCFvNUJv74RMYbnfhC", "type": "delegation", "target": "client"}}}
+{"at": 41702, "event": {"type": "session.output_transcript.delta", "start_ms": 40400, "end_ms": 40600, "delta": " Alright"}}
+{"at": 41872, "event": {"type": "session.output_transcript.delta", "start_ms": 40600, "end_ms": 40800, "delta": ","}}
+{"at": 42059, "event": {"type": "session.output_transcript.delta", "start_ms": 40800, "end_ms": 41000, "delta": " I\u2019ll"}}
+{"at": 42316, "event": {"type": "session.output_transcript.delta", "start_ms": 41000, "end_ms": 41200, "delta": " go"}}
+{"at": 42597, "event": {"type": "session.output_transcript.delta", "start_ms": 41200, "end_ms": 41400, "delta": " do that"}}
+{"at": 42703, "event": {"type": "session.output_transcript.delta", "start_ms": 41400, "end_ms": 41600, "delta": "."}}
+{"at": 45747, "event": {"type": "session.usage.updated", "usage": {"seconds": 44}, "context_window": {"usage_ratio": 0.015671875}}}
+{"at": 47727, "event": {"type": "session.input_transcript.delta", "start_ms": 46600, "end_ms": 46800, "delta": " Commit"}}
+{"at": 48705, "event": {"type": "session.input_transcript.delta", "start_ms": 47600, "end_ms": 47800, "delta": " everything"}}
+{"at": 49130, "event": {"type": "session.input_transcript.delta", "start_ms": 48000, "end_ms": 48200, "delta": " with"}}
+{"at": 49251, "event": {"type": "session.input_transcript.delta", "start_ms": 48200, "end_ms": 48400, "delta": " the"}}
+{"at": 50100, "event": {"type": "session.input_transcript.delta", "start_ms": 49000, "end_ms": 49200, "delta": " message"}}
+{"at": 50803, "event": {"type": "session.input_transcript.delta", "start_ms": 49800, "end_ms": 50000, "delta": " test"}}
+{"at": 53131, "event": {"type": "session.delegation.created", "offset_ms": 52000, "delegation": {"id": "item_EN2tNAfNxGOsB0wjOXSHM", "type": "delegation", "target": "client"}}}
+{"at": 53291, "event": {"type": "session.output_transcript.delta", "start_ms": 52200, "end_ms": 52400, "delta": " No problem"}}
+{"at": 53461, "event": {"type": "session.output_transcript.delta", "start_ms": 52400, "end_ms": 52600, "delta": ","}}
+{"at": 53637, "event": {"type": "session.output_transcript.delta", "start_ms": 52600, "end_ms": 52800, "delta": " I\u2019ll"}}
+{"at": 53946, "event": {"type": "session.output_transcript.delta", "start_ms": 52800, "end_ms": 53000, "delta": " handle"}}
+{"at": 54168, "event": {"type": "session.output_transcript.delta", "start_ms": 53000, "end_ms": 53200, "delta": " it."}}
+{"at": 60749, "event": {"type": "session.usage.updated", "usage": {"seconds": 60}, "context_window": {"usage_ratio": 0.018765625}}}
+{"at": 75749, "event": {"type": "session.usage.updated", "usage": {"seconds": 75}, "context_window": {"usage_ratio": 0.021140625}}}
+{"at": 79694, "event": {"type": "session.closed", "reason": "close_requested", "usage": {"seconds": 78}}}
