@@ -43,3 +43,7 @@ Human-run. Prints: start serve; open FIVE cmux panes each running `hotmic claude
 
 ## Done means
 All tests green, typecheck clean, `docs/P3-REPORT.md` with module map, precedence table with test names, mutation results, smoke #3 procedure, honesty ledger (`changed / related_untouched / noticed_not_fixed / residual_uncertainty / verification_gap`), commit groups. Do not commit.
+
+## Review errata (2026-09-11)
+
+The prompt requires four additions/changes: the two acknowledgement forms (pin confirmation and correction/new-task question), the rewritten live-list ask, and the two availability notices as one group (`{alias} is not responding`; `That session is not available by voice.`). This corrects “ONLY two additional permitted phrases”; retain all forms because heartbeat/off rules require the notices. A pending destination ask resolves only on a bare alias, “that one”/“the focused one”, or “cancel”; a full addressed request is independent and the pending ask is repeated once after that request dispatches. Different registration tokens are rejected only while connected; disconnected relaunch rotates the capability and refs.

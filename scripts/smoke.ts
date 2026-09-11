@@ -7,11 +7,18 @@ import { control } from "../src/sock";
 import { stateDir } from "../src/cli";
 import { loadPolicy, sessionPolicy, expand } from "../src/egress";
 import { object } from "../shim/protocol";
+import { smokeMulti } from "./smoke-multi";
 import { parseArgs } from "node:util";
+import { MIN_ACTIVATION_USD } from "../src/ledger";
 
 export async function main() {
-  const { values } = parseArgs({ args: process.argv.slice(2), options: { paid: { type: "boolean" }, grade: { type: "boolean" }, "max-usd": { type: "string" } }, strict: true });
+  const { values } = parseArgs({ args: process.argv.slice(2), options: { paid: { type: "boolean" }, grade: { type: "boolean" }, "max-usd": { type: "string" }, scenario: { type: "string" } }, strict: true });
   const budget = Number(values["max-usd"]);
+  if (values.scenario && values.scenario !== "multi") throw new Error("Unknown smoke scenario");
+  if (values.scenario === "multi") {
+    if ((!values.paid && !values.grade) || !Number.isFinite(budget) || budget <= MIN_ACTIVATION_USD || budget > 0.30) throw new Error("Human-run only: --paid --scenario multi --max-usd 0.30 (or --grade)");
+    await smokeMulti(Boolean(values.grade), budget); return;
+  }
   if ((!values.paid && !values.grade) || !Number.isFinite(budget) || budget <= 0 || budget > 0.20) throw new Error("Human-run only: bun scripts/smoke.ts --paid --max-usd 0.20  (or --grade after a run)");
   const dir = stateDir(), canaryPath = join(homedir(), "hotmic-canary.txt"), canary = `CANARY-${crypto.randomUUID()}`;
   const eventsPath = join(dir, "events.jsonl");

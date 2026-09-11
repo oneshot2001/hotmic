@@ -1,0 +1,2670 @@
+Bun 1.3.5; offline mutation run; 2026-09-11T23:50:06.299Z
+
+BASELINE exit=0
+bun test v1.3.5 (1e86cebd)
+
+ 202 pass
+ 0 fail
+ 1805 expect() calls
+Ran 202 tests across 18 files. [4.95s]
+
+1. registry token identity: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t rejects different
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+37 |   const db = openDB(), r = new Registry(db);
+38 |   try {
+39 |     for (let i = 0; i < 8; i++) r.register(`s${i}`, "/tmp", "a".repeat(64), "status");
+40 |     expect(() => r.register("s8", "/tmp", "a".repeat(64), "status")).toThrow("Maximum 8");
+41 |     r.heartbeat("s0", 1000);
+42 |     expect(() => r.register("s0", "/tmp", "b".repeat(64), "status")).toThrow("different token");
+                                                                          ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "different token"
+
+Received function did not throw
+Received value: {
+  alias: "s0",
+  cwd: "/tmp",
+  token_hash: "a0fab1377f49a759b57f63318262ebe89fabfc990e8e93ceac2984561482b9d4",
+  workspace_ref: null,
+  surface_ref: null,
+  level: "status",
+  connected: false,
+  last_heartbeat: 0,
+}
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:42:70)
+(fail) registry rejects different tokens, changed identity, malformed refs and session nine [2.33ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+2. registry limit eight: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t rejects different
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+35 | });
+36 | test("registry rejects different tokens, changed identity, malformed refs and session nine", () => {
+37 |   const db = openDB(), r = new Registry(db);
+38 |   try {
+39 |     for (let i = 0; i < 8; i++) r.register(`s${i}`, "/tmp", "a".repeat(64), "status");
+40 |     expect(() => r.register("s8", "/tmp", "a".repeat(64), "status")).toThrow("Maximum 8");
+                                                                          ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "Maximum 8"
+
+Received function did not throw
+Received value: {
+  alias: "s8",
+  cwd: "/tmp",
+  token_hash: "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb",
+  workspace_ref: null,
+  surface_ref: null,
+  level: "status",
+  connected: false,
+  last_heartbeat: 0,
+}
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:40:70)
+(fail) registry rejects different tokens, changed identity, malformed refs and session nine [2.26ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+3. registry immutable cwd/refs: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t rejects different
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+38 |   try {
+39 |     for (let i = 0; i < 8; i++) r.register(`s${i}`, "/tmp", "a".repeat(64), "status");
+40 |     expect(() => r.register("s8", "/tmp", "a".repeat(64), "status")).toThrow("Maximum 8");
+41 |     r.heartbeat("s0", 1000);
+42 |     expect(() => r.register("s0", "/tmp", "b".repeat(64), "status")).toThrow("different token");
+43 |     expect(() => r.register("s0", "/changed", "a".repeat(64), "status")).toThrow("identity changed");
+                                                                              ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "identity changed"
+
+Received function did not throw
+Received value: {
+  alias: "s0",
+  cwd: "/tmp",
+  token_hash: "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb",
+  workspace_ref: null,
+  surface_ref: null,
+  level: "status",
+  connected: true,
+  last_heartbeat: 1000,
+}
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:43:74)
+(fail) registry rejects different tokens, changed identity, malformed refs and session nine [2.22ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+4. registry input validation: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t validates input
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+80 |   const db = openDB(), r = new Registry(db);
+81 |   try {
+82 |     for (const [alias, token, refs] of [["bad alias", "a".repeat(64), { workspace_ref: null, surface_ref: null }],
+83 |       ["valid", "bad", { workspace_ref: null, surface_ref: null }],
+84 |       ["valid", "a".repeat(64), { workspace_ref: null, surface_ref: 123 }]] as const) {
+85 |       expect(() => r.register(alias, "/tmp", token, "status", refs as any)).toThrow("Invalid registration");
+                                                                                 ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "Invalid registration"
+
+Received function did not throw
+Received value: {
+  alias: "bad alias",
+  cwd: "/tmp",
+  token_hash: "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb",
+  workspace_ref: null,
+  surface_ref: null,
+  level: "status",
+  connected: false,
+  last_heartbeat: 0,
+}
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:85:77)
+(fail) registry validates input before storing any new row [2.25ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+5. registry heartbeat six-second boundary: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t heartbeat expires
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+25 | test("registry heartbeat expires at six seconds once and restores with the same token", () => {
+26 |   const db = openDB(), r = new Registry(db);
+27 |   try {
+28 |     r.register("one", "/tmp", "a".repeat(64), "release"); r.heartbeat("one", 1000);
+29 |     expect(r.expire(6999)).toEqual([]); expect(r.get("one")?.connected).toBe(true);
+30 |     expect(r.expire(7000).map(s => s.alias)).toEqual(["one"]);
+                                                  ^
+error: expect(received).toEqual(expected)
+
+- [
+-   "one",
+- ]
++ []
+
+- Expected  - 3
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:30:46)
+(fail) registry heartbeat expires at six seconds once and restores with the same token [2.29ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+6. registry announce only on connected transition: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t heartbeat expires
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+26 |   const db = openDB(), r = new Registry(db);
+27 |   try {
+28 |     r.register("one", "/tmp", "a".repeat(64), "release"); r.heartbeat("one", 1000);
+29 |     expect(r.expire(6999)).toEqual([]); expect(r.get("one")?.connected).toBe(true);
+30 |     expect(r.expire(7000).map(s => s.alias)).toEqual(["one"]);
+31 |     expect(r.expire(8000)).toEqual([]); expect(r.get("one")?.connected).toBe(false);
+                                ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   {
++     "alias": "one",
++     "connected": true,
++     "cwd": "/tmp",
++     "last_heartbeat": 1000,
++     "level": "release",
++     "surface_ref": null,
++     "token_hash": "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb",
++     "workspace_ref": null,
++   },
++ ]
+
+- Expected  - 1
++ Received  + 12
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:31:28)
+(fail) registry heartbeat expires at six seconds once and restores with the same token [2.05ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 4 expect() calls
+Ran 1 test across 1 file. [11.00ms]
+
+7. registry heartbeat restores connected: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t heartbeat expires
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+24 | });
+25 | test("registry heartbeat expires at six seconds once and restores with the same token", () => {
+26 |   const db = openDB(), r = new Registry(db);
+27 |   try {
+28 |     r.register("one", "/tmp", "a".repeat(64), "release"); r.heartbeat("one", 1000);
+29 |     expect(r.expire(6999)).toEqual([]); expect(r.get("one")?.connected).toBe(true);
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:29:73)
+(fail) registry heartbeat expires at six seconds once and restores with the same token [2.43ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+8. registry restart resets connection: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t migration
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+15 |     const row = db.query("SELECT * FROM sessions WHERE alias = 'new'").get();
+16 |     expect(row).toMatchObject({ token_hash: payloadHash("b".repeat(64)), connected: 1, last_heartbeat: 42, surface_ref: "surface:12" });
+17 |     expect(JSON.stringify(row)).not.toContain("b".repeat(64));
+18 |     let restarted!: Registry;
+19 |     expect(() => { restarted = new Registry(db); }).not.toThrow();
+20 |     expect(restarted.get("new")).toMatchObject({ connected: false, workspace_ref: "workspace:88", level: "release" });
+                                      ^
+error: expect(received).toMatchObject(expected)
+
+@@ -1,5 +1,9 @@
+  {
+-   "connected": false,
++   "alias": "new",
++   "connected": true,
++   "cwd": "/tmp",
++   "last_heartbeat": 42,
+    "level": "release",
++   "surface_ref": "surface:12",
++   "token_hash": "a0fab1377f49a759b57f63318262ebe89fabfc990e8e93ceac2984561482b9d4",
+    "workspace_ref": "workspace:88",
+
+- Expected  - 1
++ Received  + 6
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:20:34)
+(fail) registry migration is idempotent, persists hashes and refs, restores disconnected [2.55ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 5 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+9. registry migration idempotence: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t migration
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+14 |     r.heartbeat("new", 42);
+15 |     const row = db.query("SELECT * FROM sessions WHERE alias = 'new'").get();
+16 |     expect(row).toMatchObject({ token_hash: payloadHash("b".repeat(64)), connected: 1, last_heartbeat: 42, surface_ref: "surface:12" });
+17 |     expect(JSON.stringify(row)).not.toContain("b".repeat(64));
+18 |     let restarted!: Registry;
+19 |     expect(() => { restarted = new Registry(db); }).not.toThrow();
+                                                             ^
+error: expect(received).not.toThrow()
+
+Error name: "SQLiteError"
+Error message: "duplicate column name: workspace_ref"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:19:57)
+(fail) registry migration is idempotent, persists hashes and refs, restores disconnected [2.55ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 4 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+10. shim heartbeat interval: KILLED
+File: shim/channel.ts
+Command: bun test tests/registry.test.ts -t shim sends
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+70 |   } finally { db.close(); }
+71 | });
+72 | test("shim sends the exact heartbeat line every two seconds and stops on cleanup", async () => {
+73 |   const lines: string[] = [], stop = startHeartbeat(line => lines.push(line));
+74 |   try {
+75 |     await Bun.sleep(2050); expect(lines).toEqual(['{"type":"heartbeat"}\n']);
+                                              ^
+error: expect(received).toEqual(expected)
+
+- [
+-   
+- "{"type":"heartbeat"}
+- "
+- ,
+- ]
++ []
+
+- Expected  - 6
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:75:42)
+(fail) shim sends the exact heartbeat line every two seconds and stops on cleanup [2053.13ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [2.06s]
+
+11. leading only: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+71 |   const env = { CMUX_WORKSPACE_ID: "caller", CMUX_SURFACE_ID: "caller", PATH: "/bin", KEEP: "yes" };
+72 |   expect(cmuxEnv(env, true)).toEqual({ PATH: "/bin", KEEP: "yes" });
+73 |   expect(cmuxEnv(env, false)).toEqual(env);
+74 | });
+75 | test("leading-name checks reject interior comma addresses and attached verbs, longest exact name wins", () => {
+76 |   for (const text of ["run run aar, tests", "aarrun tests", "edge proofread tests"]) expect(route(text)).toHaveProperty("ask");
+                                                                                                              ^
+error: expect(received).toHaveProperty(path)
+
+Expected path: "ask"
+
+Unable to find property
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:76:106)
+(fail) leading-name checks reject interior comma addresses and attached verbs, longest exact name wins [0.46ms]
+
+ 10 pass
+ 1 fail
+ 57 expect() calls
+Ran 11 tests across 1 file. [23.00ms]
+
+12. exact token boundary: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+71 |   const env = { CMUX_WORKSPACE_ID: "caller", CMUX_SURFACE_ID: "caller", PATH: "/bin", KEEP: "yes" };
+72 |   expect(cmuxEnv(env, true)).toEqual({ PATH: "/bin", KEEP: "yes" });
+73 |   expect(cmuxEnv(env, false)).toEqual(env);
+74 | });
+75 | test("leading-name checks reject interior comma addresses and attached verbs, longest exact name wins", () => {
+76 |   for (const text of ["run run aar, tests", "aarrun tests", "edge proofread tests"]) expect(route(text)).toHaveProperty("ask");
+                                                                                                              ^
+error: expect(received).toHaveProperty(path)
+
+Expected path: "ask"
+
+Unable to find property
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:76:106)
+(fail) leading-name checks reject interior comma addresses and attached verbs, longest exact name wins [0.39ms]
+
+ 10 pass
+ 1 fail
+ 58 expect() calls
+Ran 11 tests across 1 file. [17.00ms]
+
+13. verb or punctuation boundary: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+30 |   expect(focusedAlias(registry, registry[3]!, true)).toBe("off");
+31 |   expect(focusedAlias([...registry, { ...registry[3]!, alias: "other" }], registry[3]!, true)).toBeNull();
+32 |   expect(focusedAlias(registry, { workspace_ref: "workspace:4", surface_ref: "unknown" }, true)).toBeNull();
+33 | });
+34 | test("no fuzzy, prefix, interior or unseparated non-verb name matching", () => {
+35 |   for (const text of ["aaron run tests", "edge proofing run tests", "edg proof run tests", "ask aar to run tests", "aar is mentioned in this text"]) expect(route(text)).toHaveProperty("ask");
+                                                                                                                                                                              ^
+error: expect(received).toHaveProperty(path)
+
+Expected path: "ask"
+
+Unable to find property
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:35:170)
+(fail) no fuzzy, prefix, interior or unseparated non-verb name matching [0.39ms]
+
+ 10 pass
+ 1 fail
+ 59 expect() calls
+Ran 11 tests across 1 file. [15.00ms]
+
+14. strip leading alias: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+ 9 | ];
+10 | const ctx = (): RoutingContext => ({ registry, pinned: null, focused: null });
+11 | const route = (text: string, context = ctx(), spokenAt = 1000) => resolve({ text, spokenAt }, context);
+12 | test("explicit leading alias overrides pin and focus, exact variants strip only the leading name", () => {
+13 |   for (const text of ["EDGE   PROOF run the tests", "edge proof, run the tests", "edge proof… run the tests", "edge proof\nrun the tests"]) {
+14 |     expect(route(text, { ...ctx(), pinned: { alias: "aar", lastRequestAt: 0 }, focused: registry[2]! })).toEqual({ alias: "edgeproof", text: "run the tests" });
+                                                                                                              ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "alias": "edgeproof",
+-   "text": "run the tests",
++   "text": "EDGE   PROOF run the tests",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:14:106)
+(fail) explicit leading alias overrides pin and focus, exact variants strip only the leading name [0.85ms]
+16 |   expect(route("vault, ask aar to run tests")).toEqual({ alias: "vault", text: "ask aar to run tests" });
+17 |   expect(route("a a r, run tests")).toEqual({ alias: "aar", text: "run tests" });
+18 | });
+19 | test("STT periods and ellipses separate an alias from arbitrary task text", () => {
+20 |   for (const text of ["Aar. Run the tests", "Aar... Run the tests", "a a r. Run the tests", "Aar. The tests need attention"]) {
+21 |     expect(route(text)).toEqual({ alias: "aar", text: text.includes("The tests") ? "The tests need attention" : "Run the tests" });
+                             ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "alias": "aar",
+-   "text": "Run the tests",
++   "text": "Aar. Run the tests",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:21:25)
+(fail) STT periods and ellipses separate an alias from arbitrary task text [0.06ms]
+36 |   const collision = [...registry, { ...registry[0]!, alias: "other", aliases: ["edge proof"] }];
+37 |   expect(route("edge proof, run tests", { ...ctx(), registry: collision })).toHaveProperty("ask");
+38 |   expect(route("edge proof, run tests", { ...ctx(), registry: collision, pinned: { alias: "aar", lastRequestAt: 0 } })).toHaveProperty("ask");
+39 | });
+40 | test("pin commands confirm, pinned destination precedes focus and expires at five minutes", () => {
+41 |   for (const text of ["talk to a a r", "SWITCH TO aar."]) expect(route(text)).toEqual({ alias: "aar", text: "", pinned: { alias: "aar", lastRequestAt: 1000 }, confirmation: "Talking to aar." });
+                                                                                   ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "alias": "aar",
+-   "confirmation": "Talking to aar.",
+-   "pinned": {
+-     "alias": "aar",
+-     "lastRequestAt": 1000,
+-   },
+-   "text": "",
++   "ask": "Which session? Live: aar, edgeproof, vault",
+  }
+
+- Expected  - 7
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:41:79)
+(fail) pin commands confirm, pinned destination precedes focus and expires at five minutes [0.10ms]
+50 |   expect(focusedAlias(registry, { surface_ref: null, workspace_ref: "workspace:1" })).toBe("aar");
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+53 | });
+54 | test("off destinations refuse explicit and pin targeting, focus falls through to live ask", () => {
+55 |   for (const text of ["off, run tests", "talk to off"]) expect(route(text)).toEqual({ ask: "That session is not available by voice." });
+                                                                                 ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "ask": "That session is not available by voice.",
++   "ask": "Which session? Live: aar, edgeproof, vault",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:55:77)
+(fail) off destinations refuse explicit and pin targeting, focus falls through to live ask
+72 |   expect(cmuxEnv(env, true)).toEqual({ PATH: "/bin", KEEP: "yes" });
+73 |   expect(cmuxEnv(env, false)).toEqual(env);
+74 | });
+75 | test("leading-name checks reject interior comma addresses and attached verbs, longest exact name wins", () => {
+76 |   for (const text of ["run run aar, tests", "aarrun tests", "edge proofread tests"]) expect(route(text)).toHaveProperty("ask");
+77 |   expect(route("aar.")).toEqual({ alias: "aar", text: "" });
+                             ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "alias": "aar",
+-   "text": "",
++   "text": "aar.",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:77:25)
+(fail) leading-name checks reject interior comma addresses and attached verbs, longest exact name wins [0.22ms]
+
+ 6 pass
+ 5 fail
+ 43 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+15. explicit precedes pin: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+ 9 | ];
+10 | const ctx = (): RoutingContext => ({ registry, pinned: null, focused: null });
+11 | const route = (text: string, context = ctx(), spokenAt = 1000) => resolve({ text, spokenAt }, context);
+12 | test("explicit leading alias overrides pin and focus, exact variants strip only the leading name", () => {
+13 |   for (const text of ["EDGE   PROOF run the tests", "edge proof, run the tests", "edge proof… run the tests", "edge proof\nrun the tests"]) {
+14 |     expect(route(text, { ...ctx(), pinned: { alias: "aar", lastRequestAt: 0 }, focused: registry[2]! })).toEqual({ alias: "edgeproof", text: "run the tests" });
+                                                                                                              ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "alias": "edgeproof",
+-   "text": "run the tests",
++   "alias": "aar",
++   "text": "EDGE   PROOF run the tests",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:14:106)
+(fail) explicit leading alias overrides pin and focus, exact variants strip only the leading name [0.78ms]
+
+ 10 pass
+ 1 fail
+ 56 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+16. off explicit forbidden: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+50 |   expect(focusedAlias(registry, { surface_ref: null, workspace_ref: "workspace:1" })).toBe("aar");
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+53 | });
+54 | test("off destinations refuse explicit and pin targeting, focus falls through to live ask", () => {
+55 |   for (const text of ["off, run tests", "talk to off"]) expect(route(text)).toEqual({ ask: "That session is not available by voice." });
+                                                                                 ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "ask": "That session is not available by voice.",
++   "alias": "off",
++   "text": "run tests",
+  }
+
+- Expected  - 1
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:55:77)
+(fail) off destinations refuse explicit and pin targeting, focus falls through to live ask [0.28ms]
+
+ 10 pass
+ 1 fail
+ 56 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+17. off pin forbidden: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+50 |   expect(focusedAlias(registry, { surface_ref: null, workspace_ref: "workspace:1" })).toBe("aar");
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+53 | });
+54 | test("off destinations refuse explicit and pin targeting, focus falls through to live ask", () => {
+55 |   for (const text of ["off, run tests", "talk to off"]) expect(route(text)).toEqual({ ask: "That session is not available by voice." });
+                                                                                 ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "ask": "That session is not available by voice.",
++   "alias": "off",
++   "confirmation": "Talking to off.",
++   "pinned": {
++     "alias": "off",
++     "lastRequestAt": 1000,
++   },
++   "text": "",
+  }
+
+- Expected  - 1
++ Received  + 7
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:55:77)
+(fail) off destinations refuse explicit and pin targeting, focus falls through to live ask [0.23ms]
+
+ 10 pass
+ 1 fail
+ 57 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+18. pin expires after five minutes: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+39 | });
+40 | test("pin commands confirm, pinned destination precedes focus and expires at five minutes", () => {
+41 |   for (const text of ["talk to a a r", "SWITCH TO aar."]) expect(route(text)).toEqual({ alias: "aar", text: "", pinned: { alias: "aar", lastRequestAt: 1000 }, confirmation: "Talking to aar." });
+42 |   const context = { ...ctx(), pinned: { alias: "aar", lastRequestAt: 1000 }, focused: registry[1]! };
+43 |   expect(route("run tests", context, 300999)).toEqual({ alias: "aar", text: "run tests" });
+44 |   expect(route("run tests", context, 301000)).toEqual({ alias: "edgeproof", text: "run tests" });
+                                                   ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "alias": "edgeproof",
++   "alias": "aar",
+    "text": "run tests",
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:44:47)
+(fail) pin commands confirm, pinned destination precedes focus and expires at five minutes [0.21ms]
+
+ 10 pass
+ 1 fail
+ 59 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+19. pin precedes focus: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+21 |     expect(route(text)).toEqual({ alias: "aar", text: text.includes("The tests") ? "The tests need attention" : "Run the tests" });
+22 |   }
+23 | });
+24 | test("this one is stripped under a pin without overriding the pin with focus", () => {
+25 |   expect(route("this one, run tests", { ...ctx(), pinned: { alias: "aar", lastRequestAt: 1000 }, focused: registry[1]! }))
+26 |     .toEqual({ alias: "aar", text: "run tests" });
+          ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "alias": "aar",
++   "alias": "edgeproof",
+    "text": "run tests",
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:26:6)
+(fail) this one is stripped under a pin without overriding the pin with focus [0.15ms]
+38 |   expect(route("edge proof, run tests", { ...ctx(), registry: collision, pinned: { alias: "aar", lastRequestAt: 0 } })).toHaveProperty("ask");
+39 | });
+40 | test("pin commands confirm, pinned destination precedes focus and expires at five minutes", () => {
+41 |   for (const text of ["talk to a a r", "SWITCH TO aar."]) expect(route(text)).toEqual({ alias: "aar", text: "", pinned: { alias: "aar", lastRequestAt: 1000 }, confirmation: "Talking to aar." });
+42 |   const context = { ...ctx(), pinned: { alias: "aar", lastRequestAt: 1000 }, focused: registry[1]! };
+43 |   expect(route("run tests", context, 300999)).toEqual({ alias: "aar", text: "run tests" });
+                                                   ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "alias": "aar",
++   "alias": "edgeproof",
+    "text": "run tests",
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:43:47)
+(fail) pin commands confirm, pinned destination precedes focus and expires at five minutes [0.18ms]
+
+ 9 pass
+ 2 fail
+ 58 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+20. pin policy still routable: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+53 | });
+54 | test("off destinations refuse explicit and pin targeting, focus falls through to live ask", () => {
+55 |   for (const text of ["off, run tests", "talk to off"]) expect(route(text)).toEqual({ ask: "That session is not available by voice." });
+56 |   expect(route("run tests", { ...ctx(), focused: registry[3]! })).toEqual({ ask: "Which session? Live: aar, edgeproof, vault" });
+57 |   expect(route("run tests", { ...ctx(), pinned: { alias: "off", lastRequestAt: 0 } })).toHaveProperty("ask");
+                                                                                            ^
+error: expect(received).toHaveProperty(path)
+
+Expected path: "ask"
+
+Unable to find property
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:57:88)
+(fail) off destinations refuse explicit and pin targeting, focus falls through to live ask [0.24ms]
+
+ 10 pass
+ 1 fail
+ 59 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+21. focus unknown surface never inherits workspace: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+27 | });
+28 | test("focusedAlias includes off only when requested and still requires a unique match", () => {
+29 |   expect(focusedAlias(registry, registry[3]!)).toBeNull();
+30 |   expect(focusedAlias(registry, registry[3]!, true)).toBe("off");
+31 |   expect(focusedAlias([...registry, { ...registry[3]!, alias: "other" }], registry[3]!, true)).toBeNull();
+32 |   expect(focusedAlias(registry, { workspace_ref: "workspace:4", surface_ref: "unknown" }, true)).toBeNull();
+                                                                                                      ^
+error: expect(received).toBeNull()
+
+Received: "off"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:32:98)
+(fail) focusedAlias includes off only when requested and still requires a unique match [0.26ms]
+46 |   expect(route("talk to unknown", context)).toHaveProperty("ask");
+47 | });
+48 | test("focus matches surface before workspace; unregistered and ambiguous workspace never inherit a sibling", () => {
+49 |   expect(route("this one, run tests", { ...ctx(), focused: registry[1]! })).toEqual({ alias: "edgeproof", text: "run tests" });
+50 |   expect(focusedAlias(registry, { surface_ref: null, workspace_ref: "workspace:1" })).toBe("aar");
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+                                                                                                      ^
+error: expect(received).toBeNull()
+
+Received: "aar"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:51:98)
+(fail) focus matches surface before workspace; unregistered and ambiguous workspace never inherit a sibling [0.01ms]
+
+ 9 pass
+ 2 fail
+ 60 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+22. focus must be unique: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+26 |     .toEqual({ alias: "aar", text: "run tests" });
+27 | });
+28 | test("focusedAlias includes off only when requested and still requires a unique match", () => {
+29 |   expect(focusedAlias(registry, registry[3]!)).toBeNull();
+30 |   expect(focusedAlias(registry, registry[3]!, true)).toBe("off");
+31 |   expect(focusedAlias([...registry, { ...registry[3]!, alias: "other" }], registry[3]!, true)).toBeNull();
+                                                                                                    ^
+error: expect(received).toBeNull()
+
+Received: "off"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:31:96)
+(fail) focusedAlias includes off only when requested and still requires a unique match [0.28ms]
+47 | });
+48 | test("focus matches surface before workspace; unregistered and ambiguous workspace never inherit a sibling", () => {
+49 |   expect(route("this one, run tests", { ...ctx(), focused: registry[1]! })).toEqual({ alias: "edgeproof", text: "run tests" });
+50 |   expect(focusedAlias(registry, { surface_ref: null, workspace_ref: "workspace:1" })).toBe("aar");
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+                                                                                                                                                                     ^
+error: expect(received).toBeNull()
+
+Received: "aar"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:52:161)
+(fail) focus matches surface before workspace; unregistered and ambiguous workspace never inherit a sibling [0.07ms]
+
+ 9 pass
+ 2 fail
+ 60 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+23. focus off excluded: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+24 | test("this one is stripped under a pin without overriding the pin with focus", () => {
+25 |   expect(route("this one, run tests", { ...ctx(), pinned: { alias: "aar", lastRequestAt: 1000 }, focused: registry[1]! }))
+26 |     .toEqual({ alias: "aar", text: "run tests" });
+27 | });
+28 | test("focusedAlias includes off only when requested and still requires a unique match", () => {
+29 |   expect(focusedAlias(registry, registry[3]!)).toBeNull();
+                                                    ^
+error: expect(received).toBeNull()
+
+Received: "off"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:29:48)
+(fail) focusedAlias includes off only when requested and still requires a unique match [0.25ms]
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+53 | });
+54 | test("off destinations refuse explicit and pin targeting, focus falls through to live ask", () => {
+55 |   for (const text of ["off, run tests", "talk to off"]) expect(route(text)).toEqual({ ask: "That session is not available by voice." });
+56 |   expect(route("run tests", { ...ctx(), focused: registry[3]! })).toEqual({ ask: "Which session? Live: aar, edgeproof, vault" });
+                                                                       ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "ask": "Which session? Live: aar, edgeproof, vault",
++   "alias": "off",
++   "text": "run tests",
+  }
+
+- Expected  - 1
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:56:67)
+(fail) off destinations refuse explicit and pin targeting, focus falls through to live ask
+
+ 9 pass
+ 2 fail
+ 55 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+24. live list excludes unavailable: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+51 |   expect(focusedAlias(registry, { surface_ref: "surface:serve", workspace_ref: "workspace:1" })).toBeNull();
+52 |   expect(focusedAlias([...registry, { ...registry[0]!, alias: "sibling", surface_ref: "surface:other" }], { surface_ref: null, workspace_ref: "workspace:1" })).toBeNull();
+53 | });
+54 | test("off destinations refuse explicit and pin targeting, focus falls through to live ask", () => {
+55 |   for (const text of ["off, run tests", "talk to off"]) expect(route(text)).toEqual({ ask: "That session is not available by voice." });
+56 |   expect(route("run tests", { ...ctx(), focused: registry[3]! })).toEqual({ ask: "Which session? Live: aar, edgeproof, vault" });
+                                                                       ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "ask": "Which session? Live: aar, edgeproof, vault",
++   "ask": "Which session? Live: aar, edgeproof, vault, off",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:56:67)
+(fail) off destinations refuse explicit and pin targeting, focus falls through to live ask [0.23ms]
+
+ 10 pass
+ 1 fail
+ 58 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+25. ambiguous pronunciation collision: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+32 |   expect(focusedAlias(registry, { workspace_ref: "workspace:4", surface_ref: "unknown" }, true)).toBeNull();
+33 | });
+34 | test("no fuzzy, prefix, interior or unseparated non-verb name matching", () => {
+35 |   for (const text of ["aaron run tests", "edge proofing run tests", "edg proof run tests", "ask aar to run tests", "aar is mentioned in this text"]) expect(route(text)).toHaveProperty("ask");
+36 |   const collision = [...registry, { ...registry[0]!, alias: "other", aliases: ["edge proof"] }];
+37 |   expect(route("edge proof, run tests", { ...ctx(), registry: collision })).toHaveProperty("ask");
+                                                                                 ^
+error: expect(received).toHaveProperty(path)
+
+Expected path: "ask"
+
+Unable to find property
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:37:77)
+(fail) no fuzzy, prefix, interior or unseparated non-verb name matching [0.23ms]
+
+ 10 pass
+ 1 fail
+ 60 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+26. cmux uses caller fields at launch: KILLED
+File: src/cmux.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+63 |   for (const s of ["new task", "separate task", "no, new task"]) expect(clarification(s)).toBe("new");
+64 |   for (const s of ["I said correction", "yesterday", "nothing", "separately", "yes"]) expect(clarification(s)).toBeNull();
+65 | });
+66 | test("cmux caller and focused refs stay opaque, caller environment is stripped only for focus", () => {
+67 |   const value = { caller: registry[0], focused: registry[1] };
+68 |   expect(identifyRefs(value, false)).toEqual({ workspace_ref: "workspace:1", surface_ref: "surface:1" });
+                                          ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "surface_ref": "surface:1",
+-   "workspace_ref": "workspace:1",
++   "surface_ref": "surface:2",
++   "workspace_ref": "workspace:2",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:68:38)
+(fail) cmux caller and focused refs stay opaque, caller environment is stripped only for focus [0.34ms]
+
+ 10 pass
+ 1 fail
+ 55 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+27. cmux caller vars stripped for focus: KILLED
+File: src/cmux.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+67 |   const value = { caller: registry[0], focused: registry[1] };
+68 |   expect(identifyRefs(value, false)).toEqual({ workspace_ref: "workspace:1", surface_ref: "surface:1" });
+69 |   expect(identifyRefs(value, true)).toEqual({ workspace_ref: "workspace:2", surface_ref: "surface:2" });
+70 |   for (const v of [null, { focused: { surface_ref: 42 } }, { focused: { ...registry[1], is_browser_surface: true } }]) expect(identifyRefs(v, true)).toEqual({ workspace_ref: null, surface_ref: null });
+71 |   const env = { CMUX_WORKSPACE_ID: "caller", CMUX_SURFACE_ID: "caller", PATH: "/bin", KEEP: "yes" };
+72 |   expect(cmuxEnv(env, true)).toEqual({ PATH: "/bin", KEEP: "yes" });
+                                  ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,4 @@
+  {
++   "CMUX_SURFACE_ID": "caller",
++   "CMUX_WORKSPACE_ID": "caller",
+    "KEEP": "yes",
+
+- Expected  - 0
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:72:30)
+(fail) cmux caller and focused refs stay opaque, caller environment is stripped only for focus [0.43ms]
+
+ 10 pass
+ 1 fail
+ 60 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+28. cmux invalid refs fail closed: KILLED
+File: src/cmux.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+65 | });
+66 | test("cmux caller and focused refs stay opaque, caller environment is stripped only for focus", () => {
+67 |   const value = { caller: registry[0], focused: registry[1] };
+68 |   expect(identifyRefs(value, false)).toEqual({ workspace_ref: "workspace:1", surface_ref: "surface:1" });
+69 |   expect(identifyRefs(value, true)).toEqual({ workspace_ref: "workspace:2", surface_ref: "surface:2" });
+70 |   for (const v of [null, { focused: { surface_ref: 42 } }, { focused: { ...registry[1], is_browser_surface: true } }]) expect(identifyRefs(v, true)).toEqual({ workspace_ref: null, surface_ref: null });
+                                                                                                                                                          ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "surface_ref": null,
++   "surface_ref": 42,
+    "workspace_ref": null,
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:70:150)
+(fail) cmux caller and focused refs stay opaque, caller environment is stripped only for focus [0.33ms]
+
+ 10 pass
+ 1 fail
+ 58 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+29. cmux browser never routes: KILLED
+File: src/cmux.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+65 | });
+66 | test("cmux caller and focused refs stay opaque, caller environment is stripped only for focus", () => {
+67 |   const value = { caller: registry[0], focused: registry[1] };
+68 |   expect(identifyRefs(value, false)).toEqual({ workspace_ref: "workspace:1", surface_ref: "surface:1" });
+69 |   expect(identifyRefs(value, true)).toEqual({ workspace_ref: "workspace:2", surface_ref: "surface:2" });
+70 |   for (const v of [null, { focused: { surface_ref: 42 } }, { focused: { ...registry[1], is_browser_surface: true } }]) expect(identifyRefs(v, true)).toEqual({ workspace_ref: null, surface_ref: null });
+                                                                                                                                                          ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "surface_ref": null,
+-   "workspace_ref": null,
++   "surface_ref": "surface:2",
++   "workspace_ref": "workspace:2",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:70:150)
+(fail) cmux caller and focused refs stay opaque, caller environment is stripped only for focus [0.39ms]
+
+ 10 pass
+ 1 fail
+ 59 expect() calls
+Ran 11 tests across 1 file. [12.00ms]
+
+30. capture focus at first fragment: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+67 | test("focus captured at first fragment, not delegation; ask resolves by resampled that one or explicit alias", async () => {
+68 |   const h = multi();
+69 |   try {
+70 |     h.broker.focused = { surface_ref: "surface:0", workspace_ref: "workspace:1" };
+71 |     h.fragment("run tests"); h.broker.focused = { surface_ref: "surface:1", workspace_ref: "workspace:1" }; h.settle();
+72 |     expect(h.shims[0]!.deliveries).toHaveLength(1); expect(h.shims[1]!.deliveries).toHaveLength(0);
+                                        ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:72:36)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:67:112)
+(fail) focus captured at first fragment, not delegation; ask resolves by resampled that one or explicit alias [2.12ms]
+324 |     h.broker.focused = { workspace_ref: "workspace:1", surface_ref: "surface:1" };
+325 |     h.settle();
+326 |     expect(deleted.mock.calls.filter(([key]) => key === 0)).toHaveLength(1);
+327 |     h.say("read tests");
+328 |     expect(deleted.mock.calls.filter(([key]) => key === 1)).toHaveLength(1);
+329 |     expect(h.shims[0]!.deliveries.map(d => d.content)).toEqual(["run tests"]);
+                                                             ^
+error: expect(received).toEqual(expected)
+
+- [
+-   "run tests",
+- ]
++ []
+
+- Expected  - 3
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:329:56)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:318:102)
+(fail) consumed fragment focus entries are deleted after capture while future fragments still route [2.54ms]
+
+ 18 pass
+ 2 fail
+ 133 expect() calls
+Ran 20 tests across 1 file. [99.00ms]
+
+31. capture pin at first fragment: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+87 |   try {
+88 |     h.say("talk to bravo"); await drain();
+89 |     expect(h.live.frames.some(f => f.content === "Talking to bravo.")).toBe(true);
+90 |     expect(h.shims.every(s => s.deliveries.length === 0)).toBe(true);
+91 |     h.advance(299000); h.say("New task: run tests");
+92 |     expect(h.shims[1]!.deliveries).toHaveLength(1); expect(h.broker.status().pinned?.alias).toBe("bravo");
+                                        ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:92:36)
+(fail) pin confirmation is not a task, pins refresh on requests and expire without requests [3.04ms]
+
+ 19 pass
+ 1 fail
+ 137 expect() calls
+Ran 20 tests across 1 file. [100.00ms]
+
+32. clarification dispatch retained task: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+102 |       h.say("alpha, run tests"); h.say("alpha, read tests"); await drain();
+103 |       expect(h.shims[0]!.deliveries).toHaveLength(1);
+104 |       expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+105 |       h.say(response); await drain();
+106 |       const deliveries = h.shims[0]!.deliveries;
+107 |       expect(deliveries).toHaveLength(2);
+                               ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 2
+Received length: 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:107:26)
+(fail) held follow-up asks correction versus new task and next utterance resolves once [3.40ms]
+219 |     h.say("alpha, run tests"); h.say("read tests"); await drain();
+220 |     expect(h.live.frames.some(f => f.content.startsWith("Which session?"))).toBe(true);
+221 |     h.say("alpha"); await drain();
+222 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+223 |     expect(h.shims[0]!.deliveries).toHaveLength(1);
+224 |     h.say("new task"); expect(h.shims[0]!.deliveries.map(d => d.content)).toEqual(["run tests", "read tests"]);
+                                                                                ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "run tests",
+-   "read tests",
+  ]
+
+- Expected  - 1
++ Received  + 0
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:224:75)
+(fail) resolving an unknown destination can ask the separate correction question without dropping the task [3.25ms]
+229 |   try {
+230 |     h.say("alpha, run tests"); h.shims[0]!.reply(); await drain();
+231 |     h.say("alpha, read tests"); await drain(); expect(h.shims[0]!.deliveries).toHaveLength(1);
+232 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+233 |     h.say("yes, correction"); await drain();
+234 |     expect(h.shims[0]!.deliveries).toHaveLength(2);
+                                         ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 2
+Received length: 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:234:36)
+(fail) explicit correction confirmation can supersede an exported result and retires its voice epoch [2.63ms]
+
+ 17 pass
+ 3 fail
+ 98 expect() calls
+Ran 20 tests across 1 file. [86.00ms]
+
+33. that-one uses new focused pane: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+73 |     h.broker.focused = { surface_ref: "surface:serve", workspace_ref: "workspace:1" };
+74 |     h.say("New task: fix tests"); await drain();
+75 |     expect(h.live.frames.some(f => f.content === "Which session? Live: alpha, bravo, charlie")).toBe(true);
+76 |     expect(h.broker.requests.snapshot().requests.filter(r => r.state === "WAITING_ROUTE")).toHaveLength(1);
+77 |     h.broker.focused = { surface_ref: "surface:1", workspace_ref: "workspace:1" }; h.say("that one");
+78 |     expect(h.shims[1]!.deliveries.map(d => d.content)).toEqual(["New task: fix tests"]);
+                                                            ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "New task: fix tests",
++   "that one",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:78:56)
+(fail) focus captured at first fragment, not delegation; ask resolves by resampled that one or explicit alias [4.34ms]
+275 |     const h = multi();
+276 |     try {
+277 |       h.say("New task: retained");
+278 |       h.broker.focused = { workspace_ref: "workspace:1", surface_ref: "surface:1" };
+279 |       h.say(response);
+280 |       expect(h.shims[1]!.deliveries.map(d => d.content)).toEqual(response === "cancel" ? [] : ["New task: retained"]);
+                                                               ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "New task: retained",
++   "the focused one",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:280:58)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:273:82)
+(fail) bare focused-one and cancel resolve a route ask without extra deliveries [2.06ms]
+
+ 18 pass
+ 2 fail
+ 135 expect() calls
+Ran 20 tests across 1 file. [99.00ms]
+
+34. no disconnected dispatch, including correction: KILLED
+File: src/requests.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+148 | });
+149 | test("queued correction retains supersedes reference and off/unregistered destinations never dispatch", async () => {
+150 |   const h = multi();
+151 |   try {
+152 |     h.say("alpha, run tests"); h.shims[0]!.destroy(); h.say("alpha, Actually, replace that with checks");
+153 |     expect(h.broker.requests.snapshot().deliveries).toHaveLength(1);
+                                                          ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:153:53)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:149:105)
+(fail) queued correction retains supersedes reference and off/unregistered destinations never dispatch [2.21ms]
+
+ 19 pass
+ 1 fail
+ 136 expect() calls
+Ran 20 tests across 1 file. [99.00ms]
+
+35. queued correction retains supersedes: KILLED
+File: src/requests.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+150 |   const h = multi();
+151 |   try {
+152 |     h.say("alpha, run tests"); h.shims[0]!.destroy(); h.say("alpha, Actually, replace that with checks");
+153 |     expect(h.broker.requests.snapshot().deliveries).toHaveLength(1);
+154 |     const reconnect = new Shim(h.broker, "alpha", h.shims[0]!.token);
+155 |     expect(reconnect.deliveries[0].content).toContain(`Correction replacing ${h.shims[0]!.deliveries[0].meta.delivery_id}`);
+                                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Correction replacing delivery:request:p3-1:1"
+Received: "Actually, replace that with checks"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:155:45)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:149:105)
+(fail) queued correction retains supersedes reference and off/unregistered destinations never dispatch [2.40ms]
+
+ 19 pass
+ 1 fail
+ 137 expect() calls
+Ran 20 tests across 1 file. [101.00ms]
+
+36. delivery ownership cross-session: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+196 |   try {
+197 |     h.broker.register("other", h.root, h.shims[0]!.token);
+198 |     const other = new Shim(h.broker, "other", h.shims[0]!.token);
+199 |     h.say("alpha, run tests"); await drain();
+200 |     other.reply({ ...h.shims[0]!.deliveries[0].meta, session_alias: "other" }, "STOLEN");
+201 |     expect(other.output).toContain('"ok":false');
+                               ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "\"ok\":false"
+Received: "{\"ok\":true}\n{\"ok\":true}\n{\"ok\":true}\n"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:201:26)
+(fail) delivery alias guard rejects a different session even when capabilities happen to match [2.47ms]
+
+ 19 pass
+ 1 fail
+ 139 expect() calls
+Ran 20 tests across 1 file. [104.00ms]
+
+37. delivery capability ownership: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+207 |   try {
+208 |     h.say("alpha, run tests"); await drain();
+209 |     const meta = h.shims[0]!.deliveries[0].meta, token = "f".repeat(64);
+210 |     const { payloadHash } = await import("../src/egress");
+211 |     h.broker.sessions.get("alpha")!.token_hash = payloadHash(token);
+212 |     expect(() => h.broker.tool("alpha", token, "reply", { ...meta, status: "completed", text: "STOLEN" })).toThrow("Delivery ownership mismatch");
+                                                                                                                 ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "Delivery ownership mismatch"
+
+Received function did not throw
+Received value: undefined
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:212:108)
+(fail) capability ownership survives an in-memory identity replacement [2.57ms]
+291 |     const replacement = new Shim(h.broker, "alpha", "a".repeat(64));
+292 |     h.shims[0]!.input({ type: "heartbeat" });
+293 |     expect(h.shims[0]!.destroyed).toBe(true);
+294 |     expect(h.broker.sessions.get("alpha")?.connected).toBe(true);
+295 |     replacement.reply(h.shims[0]!.deliveries[0].meta, "STOLEN");
+296 |     expect(replacement.output).toContain('"ok":false');
+                                     ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "\"ok\":false"
+Received: "{\"ok\":true}\n{\"ok\":true}\n{\"ok\":true}\n"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:296:32)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:285:81)
+(fail) expired transport cannot disconnect a relaunched alias with a new token [1.69ms]
+
+ 18 pass
+ 2 fail
+ 137 expect() calls
+Ran 20 tests across 1 file. [100.00ms]
+
+38. old transport cannot heartbeat after replacement: KILLED
+File: src/sock.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+138 |     expect(h.broker.status().sessions[0]?.connected).toBe(false);
+139 |     expect(h.live.frames.filter(f => f.content === "alpha is not responding")).toHaveLength(1);
+140 |     h.advance(100); await drain(); expect(h.live.frames.filter(f => f.content === "alpha is not responding")).toHaveLength(1);
+141 |     h.shims[0]!.input({ type: "heartbeat" }); expect(h.broker.status().sessions[0]?.connected).toBe(true);
+142 |     h.advance(6000); const replacement = new Shim(h.broker, "alpha", h.shims[0]!.token);
+143 |     h.shims[0]!.input({ type: "heartbeat" }); expect(h.shims[0]!.destroyed).toBe(true);
+                                                                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:143:77)
+(fail) heartbeat timeout retains delivery, restores channel and rejects the replaced transport [2.96ms]
+
+ 19 pass
+ 1 fail
+ 138 expect() calls
+Ran 20 tests across 1 file. [100.00ms]
+
+39. stale disconnect cannot close replacement: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+139 |     expect(h.live.frames.filter(f => f.content === "alpha is not responding")).toHaveLength(1);
+140 |     h.advance(100); await drain(); expect(h.live.frames.filter(f => f.content === "alpha is not responding")).toHaveLength(1);
+141 |     h.shims[0]!.input({ type: "heartbeat" }); expect(h.broker.status().sessions[0]?.connected).toBe(true);
+142 |     h.advance(6000); const replacement = new Shim(h.broker, "alpha", h.shims[0]!.token);
+143 |     h.shims[0]!.input({ type: "heartbeat" }); expect(h.shims[0]!.destroyed).toBe(true);
+144 |     expect(h.broker.sessions.get("alpha")?.connected).toBe(true);
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:144:55)
+(fail) heartbeat timeout retains delivery, restores channel and rejects the replaced transport [3.39ms]
+289 |     h.advance(6000);
+290 |     h.broker.register("alpha", h.root, "a".repeat(64), { workspace_ref: "new", surface_ref: "new" });
+291 |     const replacement = new Shim(h.broker, "alpha", "a".repeat(64));
+292 |     h.shims[0]!.input({ type: "heartbeat" });
+293 |     expect(h.shims[0]!.destroyed).toBe(true);
+294 |     expect(h.broker.sessions.get("alpha")?.connected).toBe(true);
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:294:55)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:285:81)
+(fail) expired transport cannot disconnect a relaunched alias with a new token [2.08ms]
+
+ 18 pass
+ 2 fail
+ 136 expect() calls
+Ran 20 tests across 1 file. [98.00ms]
+
+40. speech priorities: KILLED
+File: src/speech.ts
+Command: bun test tests/speech.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/speech.test.ts:
+3 | import { drain } from "./p2-helpers";
+4 | test("speech prioritizes questions and permissions, then results, then status in stable order", async () => {
+5 |   const q = new SpeechQueue(), out: string[] = [];
+6 |   const add = (kind: Parameters<SpeechQueue["enqueue"]>[0], alias: string) => q.enqueue(kind, alias, async () => { out.push(alias); });
+7 |   await Promise.all([add("status", "status"), add("result", "result"), add("question", "question"), add("permission", "permission")]);
+8 |   expect(out).toEqual(["question", "permission", "result", "status"]);
+                  ^
+error: expect(received).toEqual(expected)
+
+  [
++   "status",
++   "result",
+    "question",
+    "permission",
+-   "result",
+-   "status",
+  ]
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:8:15)
+(fail) speech prioritizes questions and permissions, then results, then status in stable order [0.35ms]
+
+ 3 pass
+ 1 fail
+ 7 expect() calls
+Ran 4 tests across 1 file. [15.00ms]
+
+41. speech payload atomicity: KILLED
+File: src/speech.ts
+Command: bun test tests/speech.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/speech.test.ts:
+12 |   let release!: () => void;
+13 |   const gate = new Promise<void>(r => { release = r; });
+14 |   const first = q.enqueue("result", "a", async () => { out.push("a1"); await gate; out.push("a2"); });
+15 |   await drain();
+16 |   const next = q.enqueue("question", "b", async () => { out.push("b1"); out.push("b2"); });
+17 |   await drain(); expect(out).toEqual(["a1"]);
+                                  ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,4 @@
+    "a1",
++   "b1",
++   "b2",
+  ]
+
+- Expected  - 0
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:17:30)
+(fail) speech never interleaves payload chunks, even when a higher priority item arrives [0.48ms]
+24 |   now = 60999; await add("a"); expect(out).toEqual(["a", "b", "a"]);
+25 |   now = 61000; await add("a"); expect(out).toEqual(["a", "b", "a", "a"]);
+26 | });
+27 | test("failed speech item does not strand the next payload", async () => {
+28 |   const q = new SpeechQueue(), out: string[] = [];
+29 |   const failed = q.enqueue("result", "a", async () => { throw new Error("transport"); });
+                                                                       ^
+error: transport
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:29:67)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:29:43)
+      at drain (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/src/speech.ts:22:23)
+      at drain (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/src/speech.ts:18:25)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/src/speech.ts:15:80)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:31:32)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:27:61)
+26 | });
+27 | test("failed speech item does not strand the next payload", async () => {
+28 |   const q = new SpeechQueue(), out: string[] = [];
+29 |   const failed = q.enqueue("result", "a", async () => { throw new Error("transport"); });
+30 |   const next = q.enqueue("result", "b", async () => { out.push("b"); });
+31 |   await expect(failed).rejects.toThrow("transport"); await next; expect(out).toEqual(["b"]);
+                                    ^
+error: 
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:31:32)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:27:61)
+(fail) failed speech item does not strand the next payload [0.14ms]
+
+ 2 pass
+ 2 fail
+ 5 expect() calls
+Ran 4 tests across 1 file. [15.00ms]
+
+42. progress sixty-second coalescing: KILLED
+File: src/speech.ts
+Command: bun test tests/speech.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/speech.test.ts:
+19 | });
+20 | test("progress coalesces per alias for sixty seconds without suppressing other statuses", async () => {
+21 |   let now = 1000; const q = new SpeechQueue(() => now), out: string[] = [];
+22 |   const add = (alias: string, kind: "progress" | "status" = "progress") => q.enqueue(kind, alias, async () => { out.push(alias); });
+23 |   await Promise.all([add("a"), add("a"), add("b"), add("a", "status")]);
+24 |   now = 60999; await add("a"); expect(out).toEqual(["a", "b", "a"]);
+                                                ^
+error: expect(received).toEqual(expected)
+
+@@ -2,5 +2,5 @@
+    "a",
++   "a",
+    "b",
++   "a",
+    "a",
+
+- Expected  - 0
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:24:44)
+(fail) progress coalesces per alias for sixty seconds without suppressing other statuses [0.51ms]
+
+ 3 pass
+ 1 fail
+ 6 expect() calls
+Ran 4 tests across 1 file. [14.00ms]
+
+43. progress boundary at sixty seconds: KILLED
+File: src/speech.ts
+Command: bun test tests/speech.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/speech.test.ts:
+20 | test("progress coalesces per alias for sixty seconds without suppressing other statuses", async () => {
+21 |   let now = 1000; const q = new SpeechQueue(() => now), out: string[] = [];
+22 |   const add = (alias: string, kind: "progress" | "status" = "progress") => q.enqueue(kind, alias, async () => { out.push(alias); });
+23 |   await Promise.all([add("a"), add("a"), add("b"), add("a", "status")]);
+24 |   now = 60999; await add("a"); expect(out).toEqual(["a", "b", "a"]);
+25 |   now = 61000; await add("a"); expect(out).toEqual(["a", "b", "a", "a"]);
+                                                ^
+error: expect(received).toEqual(expected)
+
+@@ -4,3 +4,3 @@
+    "a",
+-   "a",
+  ]
+
+- Expected  - 1
++ Received  + 0
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/speech.test.ts:25:44)
+(fail) progress coalesces per alias for sixty seconds without suppressing other statuses [0.17ms]
+
+ 3 pass
+ 1 fail
+ 7 expect() calls
+Ran 4 tests across 1 file. [15.00ms]
+
+44. egress fixed notice content: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-egress.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-egress.test.ts:
+ 7 |   try {
+ 8 |     const notices: Notice[] = [{ type: "route", aliases: ["sandbox", "other"] }, { type: "unavailable" }, { type: "pin", alias: "sandbox" }, { type: "clarify", alias: "sandbox" }, { type: "offline", alias: "sandbox" }];
+ 9 |     for (const notice of notices) {
+10 |       const ctx = { ...context, notice }, text = noticeText(notice);
+11 |       expect(egress("commentary", text, "sandbox", ctx).allowed).toBe(true);
+12 |       expect(egress("commentary", "PRIVATE", "sandbox", ctx).allowed).toBe(false);
+                                                                           ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-egress.test.ts:12:71)
+(fail) net control notices are an explicit grammar, never arbitrary session text [0.90ms]
+
+ 0 pass
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [15.00ms]
+
+45. egress notice kind: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-egress.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-egress.test.ts:
+ 8 |     const notices: Notice[] = [{ type: "route", aliases: ["sandbox", "other"] }, { type: "unavailable" }, { type: "pin", alias: "sandbox" }, { type: "clarify", alias: "sandbox" }, { type: "offline", alias: "sandbox" }];
+ 9 |     for (const notice of notices) {
+10 |       const ctx = { ...context, notice }, text = noticeText(notice);
+11 |       expect(egress("commentary", text, "sandbox", ctx).allowed).toBe(true);
+12 |       expect(egress("commentary", "PRIVATE", "sandbox", ctx).allowed).toBe(false);
+13 |       expect(egress("instructions", text, "sandbox", ctx).allowed).toBe(false);
+                                                                        ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-egress.test.ts:13:68)
+(fail) net control notices are an explicit grammar, never arbitrary session text [0.91ms]
+
+ 0 pass
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [15.00ms]
+
+46. egress notice alias list: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-egress.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-egress.test.ts:
+14 |       expect(egress("commentary", text, "sandbox", { ...ctx, current: false }).allowed).toBe(false);
+15 |       expect(egress("commentary", text, "sandbox", { ...ctx, source: "hook" }).allowed).toBe(false);
+16 |     }
+17 |     for (const alias of ["PRIVATE SPACE", "unregistered"]) {
+18 |       const notice: Notice = { type: "route", aliases: [alias] };
+19 |       expect(egress("commentary", noticeText(notice), "sandbox", { ...context, notice }).allowed).toBe(false);
+                                                                                                       ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-egress.test.ts:19:99)
+(fail) net control notices are an explicit grammar, never arbitrary session text [1.27ms]
+
+ 0 pass
+ 1 fail
+ 26 expect() calls
+Ran 1 test across 1 file. [16.00ms]
+
+47. egress notice alias identity: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-egress.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-egress.test.ts:
+17 |     for (const alias of ["PRIVATE SPACE", "unregistered"]) {
+18 |       const notice: Notice = { type: "route", aliases: [alias] };
+19 |       expect(egress("commentary", noticeText(notice), "sandbox", { ...context, notice }).allowed).toBe(false);
+20 |     }
+21 |     const other: Notice = { type: "pin", alias: "other" };
+22 |     expect(egress("commentary", noticeText(other), "sandbox", { ...context, notice: other }).allowed).toBe(false);
+                                                                                                           ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-egress.test.ts:22:103)
+(fail) net control notices are an explicit grammar, never arbitrary session text [1.33ms]
+
+ 0 pass
+ 1 fail
+ 28 expect() calls
+Ran 1 test across 1 file. [15.00ms]
+
+48. egress notice session policy: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-egress.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-egress.test.ts:
+19 |       expect(egress("commentary", noticeText(notice), "sandbox", { ...context, notice }).allowed).toBe(false);
+20 |     }
+21 |     const other: Notice = { type: "pin", alias: "other" };
+22 |     expect(egress("commentary", noticeText(other), "sandbox", { ...context, notice: other }).allowed).toBe(false);
+23 |     f.policy.sessions.sandbox!.level = "off";
+24 |     for (const notice of [notices[0]!, notices[2]!]) expect(egress("commentary", noticeText(notice), "sandbox", { ...context, notice }).allowed).toBe(false);
+                                                                                                                                                      ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-egress.test.ts:24:146)
+(fail) net control notices are an explicit grammar, never arbitrary session text [1.14ms]
+
+ 0 pass
+ 1 fail
+ 30 expect() calls
+Ran 1 test across 1 file. [15.00ms]
+
+49. queued result revision authorization: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+177 |     h.say("alpha, run tests"); await drain();
+178 |     const gate = new Promise<void>(r => { release = r; });
+179 |     h.live.egress = new Egress(async append => { if (append.content.startsWith("Talking")) await gate; h.live.frames.push(append); });
+180 |     h.say("talk to bravo"); await drain();
+181 |     h.shims[0]!.reply(undefined, "OLD"); h.say("alpha, Actually, replace that with checks");
+182 |     release(); await drain(); expect(h.live.frames.some(f => f.content === "alpha: OLD")).toBe(false);
+                                                                                                ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:182:91)
+(fail) queued result rechecks revision before export, and status lists every session and pending count [3.85ms]
+
+ 19 pass
+ 1 fail
+ 133 expect() calls
+Ran 20 tests across 1 file. [100.00ms]
+
+50. smoke exactly ten destinations: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+45 |   expect(gradeMulti(f.events, f.store, f.usage, 0.30, false).checks.audible_prefixes_confirmed).toBe(false);
+46 | });
+47 | test("multi smoke does not pass partial, unacknowledged, or interleaved results", () => {
+48 |   const f = fixture();
+49 |   const short = f.events.filter(e => e.request_id !== "r9");
+50 |   expect(gradeMulti(short, f.store, f.usage, 0.30, true).checks.ten_correct_destinations).toBe(false);
+                                                                                               ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:50:91)
+(fail) multi smoke does not pass partial, unacknowledged, or interleaved results [0.33ms]
+
+ 4 pass
+ 1 fail
+ 16 expect() calls
+Ran 5 tests across 1 file. [19.00ms]
+
+51. smoke destination match: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+32 |   expect(gradeMulti(f.events, f.store, f.usage, 0.30, true).cost_usd).toBe(0.25);
+33 | });
+34 | test("multi smoke fails wrong destinations, unresolved dispatch, off delivery, missing or wrong prefix and unfinalized over-cap usage", () => {
+35 |   const f = fixture(), grade = () => gradeMulti(f.events, f.store, f.usage, 0.30, true).checks;
+36 |   f.events.find(e => e.type === "delivered")!.session_alias = "bravo";
+37 |   expect(grade().ten_correct_destinations).toBe(false);
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:37:44)
+(fail) multi smoke fails wrong destinations, unresolved dispatch, off delivery, missing or wrong prefix and unfinalized over-cap usage [0.17ms]
+
+ 4 pass
+ 1 fail
+ 11 expect() calls
+Ran 5 tests across 1 file. [19.00ms]
+
+52. smoke require resolved ask: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+57 |   const f = fixture();
+58 |   f.events.find(e => e.source === "reply")!.frame.content = "wrong: done";
+59 |   expect(gradeMulti(f.events, f.store, f.usage, 0.30, true).checks.every_result_prefixed).toBe(false);
+60 |   const g = fixture(), resolution = g.events.find(e => e.operation === "resolve")!;
+61 |   g.events.splice(g.events.indexOf(resolution), 1); g.events.push(resolution);
+62 |   expect(gradeMulti(g.events, g.store, g.usage, 0.30, true).checks.ambiguous_never_dispatched).toBe(false);
+                                                                                                    ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:62:96)
+(fail) multi smoke verifies prefix independently of ownership and requires resolution before delivery [0.23ms]
+
+ 4 pass
+ 1 fail
+ 19 expect() calls
+Ran 5 tests across 1 file. [18.00ms]
+
+53. smoke registered delivery only: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+34 | test("multi smoke fails wrong destinations, unresolved dispatch, off delivery, missing or wrong prefix and unfinalized over-cap usage", () => {
+35 |   const f = fixture(), grade = () => gradeMulti(f.events, f.store, f.usage, 0.30, true).checks;
+36 |   f.events.find(e => e.type === "delivered")!.session_alias = "bravo";
+37 |   expect(grade().ten_correct_destinations).toBe(false);
+38 |   f.events = f.events.filter(e => e.operation !== "resolve"); expect(grade().ambiguous_never_dispatched).toBe(false);
+39 |   f.store.requests[0]!.session_alias = "off"; expect(grade().off_unregistered_never_delivered).toBe(false);
+                                                                                                    ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:39:96)
+(fail) multi smoke fails wrong destinations, unresolved dispatch, off delivery, missing or wrong prefix and unfinalized over-cap usage [0.26ms]
+
+ 4 pass
+ 1 fail
+ 13 expect() calls
+Ran 5 tests across 1 file. [17.00ms]
+
+54. smoke prefix correctness: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+54 |   expect(gradeMulti(f.events, f.store, f.usage, 0.30, true).checks.every_result_prefixed).toBe(false);
+55 | });
+56 | test("multi smoke verifies prefix independently of ownership and requires resolution before delivery", () => {
+57 |   const f = fixture();
+58 |   f.events.find(e => e.source === "reply")!.frame.content = "wrong: done";
+59 |   expect(gradeMulti(f.events, f.store, f.usage, 0.30, true).checks.every_result_prefixed).toBe(false);
+                                                                                               ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:59:91)
+(fail) multi smoke verifies prefix independently of ownership and requires resolution before delivery [0.21ms]
+
+ 4 pass
+ 1 fail
+ 18 expect() calls
+Ran 5 tests across 1 file. [18.00ms]
+
+55. smoke final usage required: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+36 |   f.events.find(e => e.type === "delivered")!.session_alias = "bravo";
+37 |   expect(grade().ten_correct_destinations).toBe(false);
+38 |   f.events = f.events.filter(e => e.operation !== "resolve"); expect(grade().ambiguous_never_dispatched).toBe(false);
+39 |   f.store.requests[0]!.session_alias = "off"; expect(grade().off_unregistered_never_delivered).toBe(false);
+40 |   f.events.find(e => e.source === "reply")!.frame.content = "wrong: done"; expect(grade().every_result_prefixed).toBe(false);
+41 |   f.usage[0]!.finalized = 0; expect(grade().finalized).toBe(false);
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:41:56)
+(fail) multi smoke fails wrong destinations, unresolved dispatch, off delivery, missing or wrong prefix and unfinalized over-cap usage [0.30ms]
+
+ 4 pass
+ 1 fail
+ 15 expect() calls
+Ran 5 tests across 1 file. [18.00ms]
+
+56. smoke total cost cap: KILLED
+File: scripts/smoke-multi.ts
+Command: bun test tests/smoke-multi.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+37 |   expect(grade().ten_correct_destinations).toBe(false);
+38 |   f.events = f.events.filter(e => e.operation !== "resolve"); expect(grade().ambiguous_never_dispatched).toBe(false);
+39 |   f.store.requests[0]!.session_alias = "off"; expect(grade().off_unregistered_never_delivered).toBe(false);
+40 |   f.events.find(e => e.source === "reply")!.frame.content = "wrong: done"; expect(grade().every_result_prefixed).toBe(false);
+41 |   f.usage[0]!.finalized = 0; expect(grade().finalized).toBe(false);
+42 |   f.usage[1]!.usd = 0.25; expect(grade().within_cap).toBe(false);
+                                                          ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:42:54)
+(fail) multi smoke fails wrong destinations, unresolved dispatch, off delivery, missing or wrong prefix and unfinalized over-cap usage [0.39ms]
+
+ 4 pass
+ 1 fail
+ 16 expect() calls
+Ran 5 tests across 1 file. [18.00ms]
+
+57. longest exact pronunciation wins: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+73 |   expect(cmuxEnv(env, false)).toEqual(env);
+74 | });
+75 | test("leading-name checks reject interior comma addresses and attached verbs, longest exact name wins", () => {
+76 |   for (const text of ["run run aar, tests", "aarrun tests", "edge proofread tests"]) expect(route(text)).toHaveProperty("ask");
+77 |   expect(route("aar.")).toEqual({ alias: "aar", text: "" });
+78 |   expect(route("aar run, tests", { ...ctx(), registry: [...registry, { ...registry[0]!, alias: "long", aliases: ["aar run"] }] })).toEqual({ alias: "long", text: "tests" });
+                                                                                                                                        ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "alias": "long",
+-   "text": "tests",
++   "alias": "aar",
++   "text": "run, tests",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:78:132)
+(fail) leading-name checks reject interior comma addresses and attached verbs, longest exact name wins [0.35ms]
+
+ 10 pass
+ 1 fail
+ 61 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+58. correction response grammar: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+57 |   expect(route("run tests", { ...ctx(), pinned: { alias: "off", lastRequestAt: 0 } })).toHaveProperty("ask");
+58 |   expect(route("run tests", { ...ctx(), registry: [] })).toEqual({ ask: "Which session? Live: none" });
+59 |   expect(route("run tests", { ...ctx(), registry: registry.map(s => ({ ...s, connected: false })) })).toEqual({ ask: "Which session? Live: none" });
+60 | });
+61 | test("clarification grammar accepts only the specified leading phrases", () => {
+62 |   for (const s of ["correction", "yes, correction", "instead use blue"]) expect(clarification(s)).toBe("correction");
+                                                                                                       ^
+error: expect(received).toBe(expected)
+
+Expected: "correction"
+Received: null
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:62:99)
+(fail) clarification grammar accepts only the specified leading phrases [0.32ms]
+
+ 10 pass
+ 1 fail
+ 51 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+59. new-task response grammar: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+58 |   expect(route("run tests", { ...ctx(), registry: [] })).toEqual({ ask: "Which session? Live: none" });
+59 |   expect(route("run tests", { ...ctx(), registry: registry.map(s => ({ ...s, connected: false })) })).toEqual({ ask: "Which session? Live: none" });
+60 | });
+61 | test("clarification grammar accepts only the specified leading phrases", () => {
+62 |   for (const s of ["correction", "yes, correction", "instead use blue"]) expect(clarification(s)).toBe("correction");
+63 |   for (const s of ["new task", "separate task", "no, new task"]) expect(clarification(s)).toBe("new");
+                                                                                               ^
+error: expect(received).toBe(expected)
+
+Expected: "new"
+Received: null
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:63:91)
+(fail) clarification grammar accepts only the specified leading phrases [0.18ms]
+
+ 10 pass
+ 1 fail
+ 54 expect() calls
+Ran 11 tests across 1 file. [13.00ms]
+
+60. correction question exact wording: KILLED
+File: src/egress.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+ 99 |   for (const response of ["correction", "yes, correction", "instead", "new task", "separate", "no"]) {
+100 |     const h = multi();
+101 |     try {
+102 |       h.say("alpha, run tests"); h.say("alpha, read tests"); await drain();
+103 |       expect(h.shims[0]!.deliveries).toHaveLength(1);
+104 |       expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+                                                                                                           ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:104:102)
+(fail) held follow-up asks correction versus new task and next utterance resolves once [3.03ms]
+217 |   const h = multi();
+218 |   try {
+219 |     h.say("alpha, run tests"); h.say("read tests"); await drain();
+220 |     expect(h.live.frames.some(f => f.content.startsWith("Which session?"))).toBe(true);
+221 |     h.say("alpha"); await drain();
+222 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+                                                                                                         ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:222:100)
+(fail) resolving an unknown destination can ask the separate correction question without dropping the task [2.79ms]
+227 | test("explicit correction confirmation can supersede an exported result and retires its voice epoch", async () => {
+228 |   const h = multi();
+229 |   try {
+230 |     h.say("alpha, run tests"); h.shims[0]!.reply(); await drain();
+231 |     h.say("alpha, read tests"); await drain(); expect(h.shims[0]!.deliveries).toHaveLength(1);
+232 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+                                                                                                         ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:232:100)
+(fail) explicit correction confirmation can supersede an exported result and retires its voice epoch [1.99ms]
+
+ 17 pass
+ 3 fail
+ 94 expect() calls
+Ran 20 tests across 1 file. [88.00ms]
+
+61. retained work not resent after reconnect: KILLED
+File: src/requests.ts
+Command: bun test tests/requests.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/requests.test.ts:
+71 | 
+72 | test("routing ambiguity and unclassified active follow-ups are held; new task is fresh", () => {
+73 |   const db = openDB(); const machine = new RequestMachine(db, (text) => text === "unknown" ? AMBIGUOUS : "a");
+74 |   try {
+75 |     expect(ready(machine, "d1", "unknown")).toMatchObject([{ type: "ask", text: "Which session?" }]);
+76 |     expect(machine.handle({ type: "dispatch", ...ref }, 1)).toEqual([]);
+                                                                 ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   {
++     "delegation_id": "d1",
++     "delivery_id": "delivery:request:d1:1",
++     "request_id": "request:d1",
++     "revision": 1,
++     "session_alias": "",
++     "text": "unknown",
++     "type": "deliver",
++   },
++ ]
+
+- Expected  - 1
++ Received  + 11
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/requests.test.ts:76:61)
+(fail) routing ambiguity and unclassified active follow-ups are held; new task is fresh [0.39ms]
+
+ 41 pass
+ 1 fail
+ 174 expect() calls
+Ran 42 tests across 1 file. [23.00ms]
+
+62. destination clarification may ask a distinct intent question: KILLED
+File: src/requests.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+217 |   const h = multi();
+218 |   try {
+219 |     h.say("alpha, run tests"); h.say("read tests"); await drain();
+220 |     expect(h.live.frames.some(f => f.content.startsWith("Which session?"))).toBe(true);
+221 |     h.say("alpha"); await drain();
+222 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+                                                                                                         ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:222:100)
+(fail) resolving an unknown destination can ask the separate correction question without dropping the task [3.03ms]
+
+ 19 pass
+ 1 fail
+ 138 expect() calls
+Ran 20 tests across 1 file. [100.00ms]
+
+63. confirmed correction can supersede an exported result: KILLED
+File: src/requests.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+229 |   try {
+230 |     h.say("alpha, run tests"); h.shims[0]!.reply(); await drain();
+231 |     h.say("alpha, read tests"); await drain(); expect(h.shims[0]!.deliveries).toHaveLength(1);
+232 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+233 |     h.say("yes, correction"); await drain();
+234 |     expect(h.shims[0]!.deliveries).toHaveLength(2);
+                                         ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 2
+Received length: 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:234:36)
+(fail) explicit correction confirmation can supersede an exported result and retires its voice epoch [3.19ms]
+
+ 19 pass
+ 1 fail
+ 137 expect() calls
+Ran 20 tests across 1 file. [102.00ms]
+
+64. confirmed correction retires exported epoch: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+231 |     h.say("alpha, read tests"); await drain(); expect(h.shims[0]!.deliveries).toHaveLength(1);
+232 |     expect(h.live.frames.some(f => f.content === "Is that a correction or a new task for alpha?")).toBe(true);
+233 |     h.say("yes, correction"); await drain();
+234 |     expect(h.shims[0]!.deliveries).toHaveLength(2);
+235 |     expect(h.shims[0]!.deliveries[1].meta.revision).toBe("2");
+236 |     expect(h.live.closes).toContain("exported revision retired");
+                                ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "exported revision retired"
+Received: []
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:236:27)
+(fail) explicit correction confirmation can supersede an exported result and retires its voice epoch [3.36ms]
+
+ 19 pass
+ 1 fail
+ 139 expect() calls
+Ran 20 tests across 1 file. [102.00ms]
+
+65. disconnected alias accepts a new capability: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t registry relaunch
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+55 |     old.send = () => {}; old.ready = true; r.heartbeat("one", 1000);
+56 |     expect(() => r.register("one", "/tmp/new", "b".repeat(64), "release")).toThrow("different token");
+57 |     r.disconnect("one");
+58 |     const refs = { workspace_ref: "new", surface_ref: "new" };
+59 |     let replacement!: ReturnType<Registry["register"]>;
+60 |     expect(() => { replacement = r.register("one", "/tmp/new", "b".repeat(64), "release", refs); }).not.toThrow();
+                                                                                                             ^
+error: expect(received).not.toThrow()
+
+Error name: "Error"
+Error message: "Alias already registered with a different token"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:60:105)
+(fail) registry relaunch rotates disconnected capability and refs, persists replacement without old transport [2.44ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+66. rotation replaces stale token and transport: KILLED
+File: src/registry.ts
+Command: bun test tests/registry.test.ts -t registry relaunch
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/registry.test.ts:
+56 |     expect(() => r.register("one", "/tmp/new", "b".repeat(64), "release")).toThrow("different token");
+57 |     r.disconnect("one");
+58 |     const refs = { workspace_ref: "new", surface_ref: "new" };
+59 |     let replacement!: ReturnType<Registry["register"]>;
+60 |     expect(() => { replacement = r.register("one", "/tmp/new", "b".repeat(64), "release", refs); }).not.toThrow();
+61 |     expect(replacement).not.toBe(old);
+                                 ^
+error: expect(received).not.toBe(expected)
+
+Expected: not {
+  alias: "one",
+  cwd: "/tmp/old",
+  token_hash: "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb",
+  workspace_ref: "old",
+  surface_ref: "old",
+  level: "release",
+  connected: false,
+  last_heartbeat: 1000,
+  send: [Function],
+  ready: true,
+}
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/registry.test.ts:61:29)
+(fail) registry relaunch rotates disconnected capability and refs, persists replacement without old transport [2.28ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+67. pending route accepts bare aliases only: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts -t pending route ask preserves
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+241 |   const h = multi();
+242 |   try {
+243 |     const pending = h.say("New task: step seven"); await drain();
+244 |     const request = h.broker.requests.snapshot().delegations.find(d => d.id === pending)!.request_id!;
+245 |     h.say("charlie, New task: step eight"); await drain();
+246 |     expect(h.shims[2]!.deliveries.map(d => d.content)).toEqual(["New task: step eight"]);
+                                                             ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "New task: step eight",
++   "New task: step seven",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:246:56)
+(fail) pending route ask preserves a full addressed request and re-asks once after its dispatch [7.18ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [22.00ms]
+
+68. pending route re-asked after independent dispatch: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts -t pending route ask preserves
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+244 |     const request = h.broker.requests.snapshot().delegations.find(d => d.id === pending)!.request_id!;
+245 |     h.say("charlie, New task: step eight"); await drain();
+246 |     expect(h.shims[2]!.deliveries.map(d => d.content)).toEqual(["New task: step eight"]);
+247 |     expect(h.broker.requests.snapshot().requests.find(r => r.id === request)?.state).toBe("WAITING_ROUTE");
+248 |     const asks = h.events.filter(e => e.type === "ask" && e.request_id === request);
+249 |     expect(asks).toHaveLength(2);
+                       ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 2
+Received length: 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:249:18)
+(fail) pending route ask preserves a full addressed request and re-asks once after its dispatch [7.38ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [23.00ms]
+
+69. cancel consumes the pending route ask: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts -t bare focused-one and cancel
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+276 |     try {
+277 |       h.say("New task: retained");
+278 |       h.broker.focused = { workspace_ref: "workspace:1", surface_ref: "surface:1" };
+279 |       h.say(response);
+280 |       expect(h.shims[1]!.deliveries.map(d => d.content)).toEqual(response === "cancel" ? [] : ["New task: retained"]);
+281 |       expect(h.broker.requests.snapshot().requests.filter(r => r.state === "WAITING_ROUTE")).toHaveLength(0);
+                                                                                                   ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 0
+Received length: 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:281:94)
+(fail) bare focused-one and cancel resolve a route ask without extra deliveries [9.40ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 4 expect() calls
+Ran 1 test across 1 file. [25.00ms]
+
+70. STT single period separator: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts -t STT periods
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+16 |   expect(route("vault, ask aar to run tests")).toEqual({ alias: "vault", text: "ask aar to run tests" });
+17 |   expect(route("a a r, run tests")).toEqual({ alias: "aar", text: "run tests" });
+18 | });
+19 | test("STT periods and ellipses separate an alias from arbitrary task text", () => {
+20 |   for (const text of ["Aar. Run the tests", "Aar... Run the tests", "a a r. Run the tests", "Aar. The tests need attention"]) {
+21 |     expect(route(text)).toEqual({ alias: "aar", text: text.includes("The tests") ? "The tests need attention" : "Run the tests" });
+                             ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "alias": "aar",
+-   "text": "Run the tests",
++   "ask": "Which session? Live: aar, edgeproof, vault",
+  }
+
+- Expected  - 2
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:21:25)
+(fail) STT periods and ellipses separate an alias from arbitrary task text [0.82ms]
+
+ 0 pass
+ 10 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+71. only still_working coalesces: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts -t waiting at two seconds
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+308 |       { type: "append_status", request_id, revision: Number(revision), status, text: "local status" },
+309 |     ]);
+310 |     h.advance(1100); status("waiting"); await drain(); // 2 s after first fragment
+311 |     expect(h.live.frames.filter(f => f.content === "alpha is still working.")).toHaveLength(1);
+312 |     h.advance(18000); status("unconfirmed"); await drain(); // 20 s
+313 |     expect(h.live.frames.filter(f => f.content === "alpha is still working.")).toHaveLength(2);
+                                                                                     ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 2
+Received length: 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:313:80)
+(fail) waiting at two seconds and unconfirmed at twenty seconds both pass speech egress [7.76ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [23.00ms]
+
+72. this-one stripped under pin: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts -t this one is stripped
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+21 |     expect(route(text)).toEqual({ alias: "aar", text: text.includes("The tests") ? "The tests need attention" : "Run the tests" });
+22 |   }
+23 | });
+24 | test("this one is stripped under a pin without overriding the pin with focus", () => {
+25 |   expect(route("this one, run tests", { ...ctx(), pinned: { alias: "aar", lastRequestAt: 1000 }, focused: registry[1]! }))
+26 |     .toEqual({ alias: "aar", text: "run tests" });
+          ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "alias": "aar",
+-   "text": "run tests",
++   "text": "this one, run tests",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:26:6)
+(fail) this one is stripped under a pin without overriding the pin with focus [0.73ms]
+
+ 0 pass
+ 10 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [12.00ms]
+
+73. consumed fragment focus released: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts -t consumed fragment focus
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+321 |     h.broker.focused = { workspace_ref: "workspace:1", surface_ref: "surface:0" };
+322 |     h.fragment("run tests");
+323 |     expect(deleted.mock.calls.some(([key]) => key === 0)).toBe(false);
+324 |     h.broker.focused = { workspace_ref: "workspace:1", surface_ref: "surface:1" };
+325 |     h.settle();
+326 |     expect(deleted.mock.calls.filter(([key]) => key === 0)).toHaveLength(1);
+                                                                  ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:326:61)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:318:102)
+(fail) consumed fragment focus entries are deleted after capture while future fragments still route [6.30ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [22.00ms]
+
+74. includeOff opt-in recognizes focused off session: KILLED
+File: src/netcontrol.ts
+Command: bun test tests/netcontrol.test.ts -t focusedAlias includes off
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/netcontrol.test.ts:
+25 |   expect(route("this one, run tests", { ...ctx(), pinned: { alias: "aar", lastRequestAt: 1000 }, focused: registry[1]! }))
+26 |     .toEqual({ alias: "aar", text: "run tests" });
+27 | });
+28 | test("focusedAlias includes off only when requested and still requires a unique match", () => {
+29 |   expect(focusedAlias(registry, registry[3]!)).toBeNull();
+30 |   expect(focusedAlias(registry, registry[3]!, true)).toBe("off");
+                                                          ^
+error: expect(received).toBe(expected)
+
+Expected: "off"
+Received: null
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/netcontrol.test.ts:30:54)
+(fail) focusedAlias includes off only when requested and still requires a unique match [0.37ms]
+
+ 0 pass
+ 10 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [11.00ms]
+
+75. old registration cannot disconnect new identity: KILLED
+File: src/broker.ts
+Command: bun test tests/p3-broker.test.ts -t expired transport cannot disconnect
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/p3-broker.test.ts:
+289 |     h.advance(6000);
+290 |     h.broker.register("alpha", h.root, "a".repeat(64), { workspace_ref: "new", surface_ref: "new" });
+291 |     const replacement = new Shim(h.broker, "alpha", "a".repeat(64));
+292 |     h.shims[0]!.input({ type: "heartbeat" });
+293 |     expect(h.shims[0]!.destroyed).toBe(true);
+294 |     expect(h.broker.sessions.get("alpha")?.connected).toBe(true);
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:294:55)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/p3-broker.test.ts:285:81)
+(fail) expired transport cannot disconnect a relaunched alias with a new token [7.17ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [23.00ms]
+
+76. serve rejects minimum activation budget: KILLED
+File: src/cli.ts
+Command: bun test tests/cli.test.ts -t serve rejects the minimum
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/cli.test.ts:
+30 |   const f = sandbox(), state = process.env.HOTMIC_STATE, cap = process.env.HOTMIC_MAX_USD;
+31 |   const credentials = spyOn(credentialSource, "credentials").mockRejectedValue(new Error("Unexpected credential read"));
+32 |   process.env.HOTMIC_STATE = f.dir; process.env.HOTMIC_MAX_USD = String(MIN_ACTIVATION_USD);
+33 |   try {
+34 |     expect(MIN_ACTIVATION_USD).toBeCloseTo(0.009166666666666667, 12);
+35 |     await expect(main(["serve"])).rejects.toThrow("HOTMIC_MAX_USD must be greater");
+                                               ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "HOTMIC_MAX_USD must be greater"
+Received message: "Unexpected credential read"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/cli.test.ts:35:43)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/cli.test.ts:29:80)
+(fail) serve rejects the minimum activation budget before reading credentials [1.77ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [17.00ms]
+
+77. smoke rejects minimum activation budget: KILLED
+File: scripts/smoke.ts
+Command: bun test tests/smoke-multi.test.ts -t multi smoke rejects the minimum
+Exit: 1
+bun test v1.3.5 (1e86cebd)
+
+tests/smoke-multi.test.ts:
+ 7 | test("multi smoke rejects the minimum activation budget before running the scenario", async () => {
+ 8 |   const argv = process.argv;
+ 9 |   const run = spyOn(multiRunner, "smokeMulti").mockRejectedValue(new Error("Unexpected scenario execution"));
+10 |   process.argv = [process.execPath, "smoke.ts", "--grade", "--scenario", "multi", "--max-usd", String(MIN_ACTIVATION_USD)];
+11 |   try {
+12 |     await expect(main()).rejects.toThrow("Human-run only");
+                                      ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "Human-run only"
+Received message: "Unexpected scenario execution"
+
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:12:34)
+      at <anonymous> (/private/var/folders/kl/vs__bv7s29905f6qhy_gbk880000gn/T/hotmic-mutate-YVdWcq/tests/smoke-multi.test.ts:7:87)
+(fail) multi smoke rejects the minimum activation budget before running the scenario [0.52ms]
+
+ 0 pass
+ 4 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [17.00ms]
+
+77/77 KILLED

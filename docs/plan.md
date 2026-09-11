@@ -40,7 +40,7 @@ mic/speaker (sox; Swift helper optional later)
 │  live.ts        WS, session.start, audio, appends (client_event_id tracked)
 │  transcripts.ts utterance records, silence-based settle
 │  requests.ts    request/revision/delivery state machine (SQLite)
-│  router.ts      alias → session; cmux focus at utterance start
+│  netcontrol.ts  net control: aliases, pin, captured cmux focus
 │  egress.ts      THE choke point: level, path containment, scrub, 500-token chunk
 │  ledger.ts      usage snapshots (replace, never sum), caps, daily total
 │  sock.ts        unix socket hub (0700 dir, per-session capability token)
@@ -84,9 +84,9 @@ mic/speaker (sox; Swift helper optional later)
 - `release` UI: **TTY keystroke only**. The candidate reply prints in the `hotmic serve` pane; its own `process.stdin` must be a TTY in raw mode. The approve keystroke is bound to the displayed payload hash and revision, held in process memory. No CLI or control-socket approve/reject command exists, and status omits approval hashes. Without a serve TTY, release cannot be approved and status reports that limitation. Voice and Claude tools cannot approve.
 - Tests intercept serialized outbound frames and assert zero unauthorized bytes: fragmented secret at every byte boundary, canary read from outside the root and echoed through reply/hooks, symlink and sibling-prefix path escapes, forged session metadata, cross-session reply, revoked release, superseded revision, malformed UTF-8 token.
 
-## Router (final)
+## Net control (final)
 
-Registry: `session_id, adapter_id, alias, root, workspace_uuid, surface_uuid, state, last_heartbeat, level`. Heartbeat 2 s; 6 s silence → unavailable, queued request retained and announced.
+Registry: `alias, cwd, token_hash, workspace_ref, surface_ref, level, connected, last_heartbeat`. cmux refs are opaque session keys, not UUIDs. Heartbeat 2 s; 6 s silence → unavailable, queued request retained and announced.
 
 Precedence: explicit leading alias → pinned destination ("talk to aar" until "talk to …" again or 5 min) → cmux focused surface captured at utterance start (`cmux identify --no-caller`, caller env vars cleared) → ask, listing live aliases. Names inside task content never re-route. One broker-owned speech queue; questions and permission notices before completed results; progress coalesced.
 
@@ -101,7 +101,7 @@ sox capture at 24 kHz mono pcm16 in 20 ms frames; playback queue 80–120 ms tar
 ```
 <tool>/
   bin/<tool>              # serve | claude | wake | sleep | status | usage | doctor
-  src/{cli,broker,live,transcripts,requests,router,cmux,egress,ledger,db,audio,protocol}.ts
+  src/{cli,broker,live,transcripts,requests,registry,netcontrol,speech,cmux,egress,ledger,db,audio,protocol}.ts
   shim/{channel,hook}.ts
   config/policy.example.json
   prompts/{live,channel}.txt
