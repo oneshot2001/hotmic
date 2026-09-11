@@ -1,9 +1,11 @@
-import { test, expect } from "bun:test";
+import { test, expect, spyOn } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { childEnv, launchConfig, main } from "../src/cli";
 import { hookEvents, hookMetadata } from "../shim/hook";
 import { sandbox } from "./p2-helpers";
+import { MIN_ACTIVATION_USD } from "../src/ledger";
+import * as credentialSource from "../src/credentials";
 test("launcher generates interactive P0 flags, accepted exec hooks and authenticated MCP", () => {
   const f = sandbox();
   try {
@@ -23,6 +25,21 @@ test("launcher generates interactive P0 flags, accepted exec hooks and authentic
     expect(c.mcp.mcpServers.hotmic.env.HOTMIC_TOKEN).toBe("token");
     expect(JSON.stringify(c.settings)).not.toContain("MessageDisplay");
   } finally { f.cleanup(); }
+});
+test("serve rejects the minimum activation budget before reading credentials", async () => {
+  const f = sandbox(), state = process.env.HOTMIC_STATE, cap = process.env.HOTMIC_MAX_USD;
+  const credentials = spyOn(credentialSource, "credentials").mockRejectedValue(new Error("Unexpected credential read"));
+  process.env.HOTMIC_STATE = f.dir; process.env.HOTMIC_MAX_USD = String(MIN_ACTIVATION_USD);
+  try {
+    expect(MIN_ACTIVATION_USD).toBeCloseTo(0.009166666666666667, 12);
+    await expect(main(["serve"])).rejects.toThrow("HOTMIC_MAX_USD must be greater");
+    expect(credentials).not.toHaveBeenCalled();
+  } finally {
+    credentials.mockRestore();
+    if (state === undefined) delete process.env.HOTMIC_STATE; else process.env.HOTMIC_STATE = state;
+    if (cap === undefined) delete process.env.HOTMIC_MAX_USD; else process.env.HOTMIC_MAX_USD = cap;
+    f.cleanup();
+  }
 });
 test("CLI has no approve or reject command even with well-formed arguments", async () => {
   const f = sandbox(), previous = process.env.HOTMIC_STATE;
