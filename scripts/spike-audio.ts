@@ -1,17 +1,20 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import { audioLimits, chunkFrames, CLOSE_GRACE_SECONDS, costUSD, rms, SILENCE_MS, SILENCE_RMS, silenceFrame, transcriptWords } from "../src/p0-audio";
 import { object } from "../shim/protocol";
 
 async function main() {
+  if (existsSync(resolve(import.meta.dir, "../.env")) && !process.execArgv.includes("--no-env-file")) {
+    throw new Error("Refusing .env loading: run bun --no-env-file scripts/spike-audio.ts …");
+  }
   const { values } = parseArgs({ args: Bun.argv.slice(2), options: {
     "max-seconds": { type: "string", default: "90" }, "max-usd": { type: "string", default: "0.15" }, "echo-test": { type: "boolean", default: false },
   }, strict: true, allowPositionals: false });
   const limits = audioLimits(Number(values["max-seconds"]), Number(values["max-usd"]));
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY must be supplied in the environment. Run bun --no-env-file scripts/spike-audio.ts …");
-  if (!Bun.which("rec") || !Bun.which("play")) throw new Error("sox rec and play are required");
+  if (!Bun.which("sox") || !Bun.which("play")) throw new Error("sox and play are required");
   const dir = resolve(import.meta.dir, "../.runs/p0");
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const path = `${dir}/audio-${Date.now()}.jsonl`;
@@ -22,7 +25,7 @@ async function main() {
     silence_rms: SILENCE_RMS, silence_ms: SILENCE_MS, echo_test: values["echo-test"] });
   console.log(`Log: ${path}\nCapture window ≤${limits.captureSeconds.toFixed(1)}s; close grace ≤10s. RMS threshold ${SILENCE_RMS} for ${SILENCE_MS}ms.`);
 
-  let started = false, closing = false, finalized = false;
+  let started = false, closing = false, finalized = false, finalUsageValid = false;
   let usageSeconds: number | null = null;
   let lastFragmentAt: number | null = null, lastFragmentEnd: number | null = null;
   let silenceSince: number | null = null, silent = false;
@@ -32,7 +35,7 @@ async function main() {
   const echoHits: { at: number; word: string }[] = [];
   const rows: Record<string, unknown>[] = [];
   const commentaryTimers = new Set<ReturnType<typeof setTimeout>>();
-  let rec: Bun.Subprocess<"ignore", "pipe", "inherit"> | undefined;
+  let rec: Bun.Subprocess<"ignore", "pipe", "pipe"> | undefined;
   let play: Bun.Subprocess<"pipe", "ignore", "inherit"> | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
   let done!: () => void;
@@ -85,10 +88,12 @@ async function main() {
         console.error(String(message.data)); process.exitCode = 1; close("server error"); return;
       }
       if (event.type === "session.usage.updated" || event.type === "session.closed") {
+        // Close confirmation is independent of whether the final usage parses.
+        if (event.type === "session.closed") finalized = true;
         if (!object(event.usage) || typeof event.usage.seconds !== "number" || !Number.isFinite(event.usage.seconds) || event.usage.seconds < 0) throw new Error("Missing usage.seconds");
         usageSeconds = event.usage.seconds; // Cumulative snapshot: replace, never sum.
         if (event.type === "session.closed") {
-          finalized = true; closing = true; ws.close(); finish(); return;
+          finalUsageValid = true; closing = true; ws.close(); finish(); return;
         }
         if (usageSeconds >= limits.captureSeconds) close("usage cap");
       }
@@ -96,8 +101,28 @@ async function main() {
       if (event.type === "session.started" && !started) {
         started = true;
         play = Bun.spawn(["play", "-q", "-t", "raw", "-r", "24000", "-e", "signed", "-b", "16", "-c", "1", "-"], { stdin: "pipe", stdout: "ignore", stderr: "inherit" });
-        rec = Bun.spawn(["rec", "-q", "-t", "raw", "-r", "24000", "-e", "signed", "-b", "16", "-c", "1", "-"], { stdin: "ignore", stdout: "pipe", stderr: "inherit" });
-        for (const child of [rec, play]) void child.exited.then(() => { if (!closing) { process.exitCode = 1; close("sox exited"); } });
+        // Let CoreAudio select its native input rate (including 48 kHz). The
+        // output options and rate effect explicitly produce 24 kHz PCM.
+        rec = Bun.spawn(["sox", "-V3", "-t", "coreaudio", "default", "-t", "raw", "-r", "24000", "-e", "signed", "-b", "16", "-c", "1", "-", "rate", "24000"], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+        void (async () => {
+          let pending = "", input = false;
+          for await (const bytes of rec!.stderr) {
+            process.stderr.write(bytes);
+            pending += new TextDecoder().decode(bytes);
+            let end: number;
+            while ((end = pending.indexOf("\n")) >= 0) {
+              const line = pending.slice(0, end); pending = pending.slice(end + 1);
+              if (/Input File/.test(line)) input = true;
+              if (/Output File/.test(line)) input = false;
+              const rate = input ? line.match(/Sample Rate\s*:\s*(\d+)/) : null;
+              if (rate) log({ type: "device_rate", input_hz: Number(rate[1]), output_hz: 24000 });
+            }
+          }
+        })().catch(() => { process.exitCode = 1; close("capture diagnostics failed"); });
+        for (const child of [rec, play]) void child.exited.then(() => {
+          // SIGINT also hits sox; let our signal handler run before classifying.
+          setImmediate(() => { if (!closing) { process.exitCode = 1; close("sox exited"); } });
+        });
         void (async () => {
           let pending = Buffer.alloc(0);
           for await (const chunk of rec!.stdout) {
@@ -149,7 +174,11 @@ async function main() {
         }, 900);
         commentaryTimers.add(timer);
       }
-    } catch (error) { log({ type: "contract_error", error: String(error) }); console.error(String(error)); process.exitCode = 1; close("contract error"); }
+    } catch (error) {
+      log({ type: "contract_error", error: String(error) }); console.error(String(error)); process.exitCode = 1;
+      if (finalized) { closing = true; ws.close(); finish(); }
+      else close("contract error");
+    }
   });
   ws.addEventListener("error", () => { console.error("Live WebSocket failed"); log({ type: "transport_error" }); process.exitCode = 1; close("transport error"); });
   ws.addEventListener("close", () => { if (!finalized) { process.exitCode = 1; log({ type: "unconfirmed_close" }); } finish(); });
@@ -157,7 +186,7 @@ async function main() {
   clearTimeout(capTimer); clearTimeout(hardTimer);
   process.off("SIGINT", interrupt); process.off("SIGTERM", terminate);
   const seconds = usageSeconds ?? now() / 1000;
-  const summary = { type: "summary", usage_seconds: seconds, cost_usd: costUSD(seconds), final_usage_confirmed: finalized,
+  const summary = { type: "summary", usage_seconds: seconds, cost_usd: costUSD(seconds), final_usage_confirmed: finalUsageValid, session_closed_received: finalized,
     usage_source: usageSeconds === null ? "wall_clock_estimate" : "server_snapshot", delegation_count: rows.length,
     echo: values["echo-test"] ? (echoHits.length ? "possible feedback" : "no repeated words observed; human listening verdict required") : "not tested", echo_candidates: echoHits.length };
   log(summary); console.log(JSON.stringify(summary, null, 2)); console.table(rows);

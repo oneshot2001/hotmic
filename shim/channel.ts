@@ -1,6 +1,10 @@
 import { createConnection } from "node:net";
 import { identity, identityProperties, jsonLines, object, validTool } from "./protocol";
 
+// Temporary allowlist until the probe captures the client version for P2.
+export const PROTOCOL_VERSIONS = ["2025-06-18", "2025-11-25"] as const;
+export const PROTOCOL_VERSION = PROTOCOL_VERSIONS[0];
+
 export const channelTools = ["acknowledge", "reply"].map((name) => ({
   name,
   description: name === "acknowledge" ? "Acknowledge a channel delivery using its metadata."
@@ -37,7 +41,9 @@ export async function serveChannel(
       if (typeof id !== "string" && typeof id !== "number") { error(null, -32600, "Invalid id"); return; }
       let result: unknown;
       if (method === "initialize") {
-        if (!object(params) || typeof params.protocolVersion !== "string") { error(id, -32602, "Missing protocolVersion"); return; }
+        if (object(params) && typeof params.protocolVersion === "string")
+          await forward({ type: "channel_initialize", protocolVersion: params.protocolVersion });
+        if (!object(params) || !PROTOCOL_VERSIONS.some((version) => version === params.protocolVersion)) { error(id, -32602, "Unsupported protocolVersion"); return; }
         result = {
           protocolVersion: params.protocolVersion,
           capabilities: { experimental: { "claude/channel": {} }, tools: {} },

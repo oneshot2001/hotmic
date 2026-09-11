@@ -4,6 +4,7 @@ import { createServer, type Socket } from "node:net";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
+import { recordChannelEvent } from "./channel-artifact";
 import { hookEvents, metadataKeys } from "../shim/hook";
 import { jsonLines, object } from "../shim/protocol";
 
@@ -33,7 +34,7 @@ const server = createServer((socket) => {
   let mode: "http" | "lines" | undefined;
   const lines = jsonLines((value) => {
     if (!object(value)) { malformed = true; return; }
-    events.push(value); record({ type: "socket", event: value });
+    events.push(value); recordChannelEvent(artifact, value);
     if (value.type === "channel_ready") channelSocket = socket;
     if (value.type === "tool_call" && value.name === "reply") replied = true;
   }, () => { malformed = true; });
@@ -152,6 +153,7 @@ const matches = (event: Record<string, unknown>, name: string) => event.type ===
   && Object.entries(meta).every(([key, value]) => (event.arguments as Record<string, unknown>)[key] === value);
 const hooks = events.filter((event) => event.type === "hook");
 const checks = {
+  "client protocolVersion recorded": events.some((event) => event.type === "channel_initialize" && typeof event.protocolVersion === "string"),
   "one notification sent": sent,
   "acknowledge received": events.some((event) => matches(event, "acknowledge")),
   "reply contains exact marker": events.some((event) => matches(event, "reply") && object(event.arguments) && event.arguments.text === marker && event.arguments.status === "completed"),

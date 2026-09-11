@@ -1,6 +1,10 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { recordChannelEvent } from "../scripts/channel-artifact";
 import { describe, expect, test } from "bun:test";
 import { audioLimits, chunkFrames, costUSD, FRAME_BYTES, rms, silenceFrame, transcriptWords } from "../src/p0-audio";
-import { serveChannel } from "../shim/channel";
+import { PROTOCOL_VERSION, serveChannel } from "../shim/channel";
 import { hookMetadata } from "../shim/hook";
 import { jsonLines } from "../shim/protocol";
 
@@ -73,16 +77,22 @@ async function roundTrip(input: string, fragmentSize = 1) {
 
 test("MCP initialize and tools/list round-trip through an in-process pipe", async () => {
   const { output, forwarded } = await roundTrip([
-    { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "test", version: "1" } } },
+    { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "test", version: "1" } } },
     { jsonrpc: "2.0", method: "notifications/initialized" },
     { jsonrpc: "2.0", id: "工具", method: "tools/list" },
   ].map((value) => JSON.stringify(value) + "\n").join(""));
   expect(output).toHaveLength(2);
   expect(output[0]?.result.capabilities).toEqual({ experimental: { "claude/channel": {} }, tools: {} });
-  expect(output[0]?.result.protocolVersion).toBe("2025-11-25");
+  expect(output[0]?.result.protocolVersion).toBe(PROTOCOL_VERSION);
   expect(output[1]?.id).toBe("工具");
   expect(output[1]?.result.tools.map((tool: { name: string }) => tool.name)).toEqual(["acknowledge", "reply"]);
-  expect(forwarded).toEqual([{ type: "channel_ready" }]);
+  expect(forwarded).toEqual([{ type: "channel_initialize", protocolVersion: PROTOCOL_VERSION }, { type: "channel_ready" }]);
+});
+
+test("MCP rejects missing and untested protocol versions", async () => {
+  const { output } = await roundTrip([{}, { protocolVersion: "2099-01-01" }].map((params, id) =>
+    JSON.stringify({ jsonrpc: "2.0", id, method: "initialize", params }) + "\n").join(""));
+  expect(output.map((value) => value.error.code)).toEqual([-32602, -32602]);
 });
 
 test("MCP forwards valid tools and rejects malformed/unknown operations", async () => {
@@ -112,4 +122,32 @@ test("tool forwarding failure returns MCP isError", async () => {
   let output = "";
   await serveChannel(input, (line) => { output += line; }, async () => { throw new Error("offline"); });
   expect(JSON.parse(output).result.isError).toBe(true);
+});
+
+for (const protocolVersion of ["2025-06-18", "2025-11-25"]) test(`MCP accepts and forwards observed client version ${protocolVersion}`, async () => {
+  const { output, forwarded } = await roundTrip(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion } }) + "\n");
+  expect(output[0]?.result?.protocolVersion).toBe(protocolVersion);
+  expect(forwarded).toEqual([{ type: "channel_initialize", protocolVersion }]);
+});
+
+test("probe artifact records the client protocolVersion from channel initialization", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "hotmic-protocol-"));
+  const artifact = join(dir, "channel.jsonl");
+  try {
+    const protocolVersion = "2025-11-25";
+    const input = new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion } }) + "\n").body!;
+    await serveChannel(input, () => {}, async (event) => recordChannelEvent(artifact, event, 123));
+    const rows = readFileSync(artifact, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+    expect(rows).toEqual([
+      { at: 123, type: "socket", event: { type: "channel_initialize", protocolVersion } },
+      { at: 123, type: "initialize", protocolVersion },
+    ]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("unsupported client version is observable for diagnosis but still rejected", async () => {
+  const protocolVersion = "2099-01-01";
+  const { output, forwarded } = await roundTrip(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion } }) + "\n");
+  expect(output[0]?.error.code).toBe(-32602);
+  expect(forwarded).toEqual([{ type: "channel_initialize", protocolVersion }]);
 });
