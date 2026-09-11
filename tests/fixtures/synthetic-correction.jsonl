@@ -1,0 +1,18 @@
+{"at":0,"event":{"type":"session.started"}}
+{"at":0,"event":{"type":"local.silence","at_ms":0,"silent":true}}
+{"at":100,"event":{"type":"session.input_transcript.delta","start_ms":0,"end_ms":200,"delta":"Do old work"}}
+{"at":900,"event":{"type":"session.delegation.created","offset_ms":100,"delegation":{"id":"old"}}}
+{"at":2000,"event":{"type":"replay.request","command":{"type":"dispatch","request_id":"request:old","revision":1}}}
+{"at":2100,"event":{"type":"replay.request","command":{"type":"acknowledge","delivery_id":"delivery:request:old:1"}}}
+{"at":2200,"event":{"type":"replay.request","command":{"type":"reply","delivery_id":"delivery:request:old:1","status":"completed","text":"STALE"}}}
+{"at":2500,"event":{"type":"local.silence","at_ms":2500,"silent":false}}
+{"at":2600,"event":{"type":"session.input_transcript.delta","start_ms":800,"end_ms":1000,"delta":"Actually, do new work"}}
+{"at":2800,"event":{"type":"local.silence","at_ms":2800,"silent":true}}
+{"at":3000,"event":{"type":"session.delegation.created","offset_ms":900,"delegation":{"id":"new"}}}
+{"at":3900,"event":{"type":"replay.request","command":{"type":"export_result","request_id":"request:old","revision":1}}}
+{"at":4000,"event":{"type":"replay.request","command":{"type":"reply","delivery_id":"delivery:request:old:1","status":"completed","text":"LATE STALE"}}}
+{"at":4100,"event":{"type":"replay.request","command":{"type":"reply","delivery_id":"delivery:request:old:2","status":"completed","text":"Current"}}}
+{"at":4200,"event":{"type":"replay.request","command":{"type":"export_result","request_id":"request:old","revision":2}}}
+{"at":4300,"event":{"type":"replay.request","command":{"type":"spoken","request_id":"request:old","revision":2}}}
+{"at":5000,"event":{"type":"session.closed","usage":{"seconds":96}}}
+{"at":5001,"event":{"type":"replay.expect","requests":[{"delegation_id":"old","text":"Do old work"},{"delegation_id":"new","text":"Actually, do new work"}],"seconds":96}}

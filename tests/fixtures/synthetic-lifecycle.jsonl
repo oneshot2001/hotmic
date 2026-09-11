@@ -1,0 +1,13 @@
+{"at":0,"event":{"type":"session.started"}}
+{"at":0,"event":{"type":"local.silence","at_ms":0,"silent":true}}
+{"at":100,"event":{"type":"session.input_transcript.delta","start_ms":31600,"end_ms":31800,"delta":"about"}}
+{"at":900,"event":{"type":"session.delegation.created","offset_ms":31600,"delegation":{"id":"d"}}}
+{"at":2000,"event":{"type":"replay.request","command":{"type":"dispatch","request_id":"request:d","revision":1}}}
+{"at":2100,"event":{"type":"replay.request","command":{"type":"delivered","delivery_id":"delivery:request:d:1"}}}
+{"at":2200,"event":{"type":"replay.request","command":{"type":"acknowledge","delivery_id":"delivery:request:d:1"}}}
+{"at":2300,"event":{"type":"replay.request","command":{"type":"reply","delivery_id":"delivery:request:d:1","status":"completed","text":"Local result"}}}
+{"at":2400,"event":{"type":"replay.request","command":{"type":"export_blocked","request_id":"request:d","revision":1}}}
+{"at":2500,"event":{"type":"replay.request","command":{"type":"export_result","request_id":"request:d","revision":1}}}
+{"at":2600,"event":{"type":"replay.request","command":{"type":"spoken","request_id":"request:d","revision":1}}}
+{"at":3000,"event":{"type":"session.closed","usage":{"seconds":96}}}
+{"at":3001,"event":{"type":"replay.expect","requests":[{"delegation_id":"d","text":"about"}],"seconds":96}}
