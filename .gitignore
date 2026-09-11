@@ -1,0 +1,8 @@
+node_modules/
+.env
+.runs/
+*.db
+*.db-*
+docs/refs/
+dist/
+.DS_Store
